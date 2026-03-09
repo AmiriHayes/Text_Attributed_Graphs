@@ -1,0 +1,134 @@
+[
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 7,
+    "Edge_Idx": 10,
+    "Text_Idx": "a",
+    "KL": 0.8741379976272583,
+    "Top1": 0.8096666666666666,
+    "Top3": 0.9393333333333334,
+    "Cosine": 0.8273850679397583,
+    "Performance_Band": "Good"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 7,
+    "Edge_Idx": 10,
+    "Text_Idx": "b",
+    "KL": 0.8782582879066467,
+    "Top1": 0.8103333333333333,
+    "Top3": 0.9396666666666667,
+    "Cosine": 0.8264890909194946,
+    "Performance_Band": "Good"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 7,
+    "Edge_Idx": 11,
+    "Text_Idx": "a",
+    "KL": 0.8623645901679993,
+    "Top1": 0.792,
+    "Top3": 0.941,
+    "Cosine": 0.8122954368591309,
+    "Performance_Band": "Fair"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 7,
+    "Edge_Idx": 11,
+    "Text_Idx": "a",
+    "KL": 0.8287549614906311,
+    "Top1": 0.7926666666666666,
+    "Top3": 0.9393333333333334,
+    "Cosine": 0.8145036697387695,
+    "Performance_Band": "Fair"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 7,
+    "Edge_Idx": 11,
+    "Text_Idx": "b",
+    "KL": 0.8841940760612488,
+    "Top1": 0.7896666666666666,
+    "Top3": 0.939,
+    "Cosine": 0.8106293678283691,
+    "Performance_Band": "Fair"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 7,
+    "Edge_Idx": 11,
+    "Text_Idx": "b",
+    "KL": 0.8270751237869263,
+    "Top1": 0.7893333333333333,
+    "Top3": 0.9416666666666667,
+    "Cosine": 0.8128926753997803,
+    "Performance_Band": "Fair"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 8,
+    "Edge_Idx": 10,
+    "Text_Idx": "a",
+    "KL": 0.23385216295719147,
+    "Top1": 0.9474824038982134,
+    "Top3": 0.9832160259880888,
+    "Cosine": 0.9530277848243713,
+    "Performance_Band": "Excellent"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 8,
+    "Edge_Idx": 10,
+    "Text_Idx": "b",
+    "KL": 0.22532042860984802,
+    "Top1": 0.947347049269085,
+    "Top3": 0.9852463454250135,
+    "Cosine": 0.95249342918396,
+    "Performance_Band": "Excellent"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 8,
+    "Edge_Idx": 11,
+    "Text_Idx": "a",
+    "KL": 0.22837606072425842,
+    "Top1": 0.9474824038982134,
+    "Top3": 0.9844342176502436,
+    "Cosine": 0.9524689316749573,
+    "Performance_Band": "Excellent"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 8,
+    "Edge_Idx": 11,
+    "Text_Idx": "a",
+    "KL": 0.2566490173339844,
+    "Top1": 0.9384136437466162,
+    "Top3": 0.9806442880346508,
+    "Cosine": 0.9451345801353455,
+    "Performance_Band": "Excellent"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 8,
+    "Edge_Idx": 11,
+    "Text_Idx": "b",
+    "KL": 0.23339977860450745,
+    "Top1": 0.9465349214943151,
+    "Top3": 0.9836220898754737,
+    "Cosine": 0.9521671533584595,
+    "Performance_Band": "Excellent"
+  },
+  {
+    "Task_Idx": 1,
+    "Node_Idx": 8,
+    "Edge_Idx": 11,
+    "Text_Idx": "b",
+    "KL": 0.2417006492614746,
+    "Top1": 0.939225771521386,
+    "Top3": 0.9834867352463454,
+    "Cosine": 0.9458824992179871,
+    "Performance_Band": "Excellent"
+  }
+]

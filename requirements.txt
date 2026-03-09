@@ -1,0 +1,34 @@
+# Ontological Generalization Framework
+# Requirements for TAG-based GNN experiments
+
+# Core dependencies
+numpy>=1.21.0
+pandas>=1.3.0
+scipy>=1.7.0
+
+# Deep Learning
+torch>=2.0.0
+torch-geometric>=2.3.0
+
+# Graph processing
+networkx>=2.6.0
+
+# Machine Learning
+scikit-learn>=1.0.0
+
+# Text embeddings
+sentence-transformers>=2.2.0
+
+# Visualization
+matplotlib>=3.4.0
+seaborn>=0.11.0
+
+# Utilities
+tqdm>=4.62.0
+joblib>=1.1.0
+
+# Data handling (optional)
+kagglehub>=0.1.0
+
+# For saving models and analysis
+pyyaml>=6.0
