@@ -69,19 +69,9 @@ class DecisionTreeAnalyzer:
         self.decision_tree = None
         self.feature_encoders = {}
         
-    def add_experiment(self, task_idx: int, node_idx: int, edge_idx: int, 
-                       text_idx: str, test_metrics: Dict):
-        """
-        Add an experiment result to the Decision Tree Table.
+    def add_experiment(self, task_idx: int, node_idx: int, edge_idx: int,
+                   text_idx: str, test_metrics: Dict, stats: Dict = None):
         
-        Args:
-            task_idx: Task ontological index
-            node_idx: Node type index
-            edge_idx: Edge type index
-            text_idx: Text fidelity index
-            test_metrics: Dictionary of test metrics
-        """
-        # Extract primary metric (default: top1 accuracy)
         primary_metric = test_metrics.get('top1', 0.0)
         performance_band = PerformanceBand.categorize_accuracy(primary_metric)
         
@@ -94,12 +84,20 @@ class DecisionTreeAnalyzer:
             'Top1': test_metrics.get('top1', np.nan),
             'Top3': test_metrics.get('top3', np.nan),
             'Cosine': test_metrics.get('cosine', np.nan),
-            'Performance_Band': performance_band
+            'Performance_Band': performance_band,
+            # Stats columns — default to nan if not provided
+            'number_of_nodes': stats.get('number_of_nodes', np.nan) if stats else np.nan,
+            'avg_text_length': stats.get('avg_text_length', np.nan) if stats else np.nan,
+            'text_vocab_entropy': stats.get('text_vocab_entropy', np.nan) if stats else np.nan,
+            'label_balance_entropy': stats.get('label_balance_entropy', np.nan) if stats else np.nan,
+            'task_type': stats.get('task_type', np.nan) if stats else np.nan,
+            'output_dimension': stats.get('output_dimension', np.nan) if stats else np.nan,
+            'normalized_score': stats.get('normalized_score', np.nan) if stats else np.nan,
         }
         
         self.experiments.append(experiment)
         print(f"✅ Added experiment: T{task_idx}_N{node_idx}_E{edge_idx}_X{text_idx} -> {performance_band}")
-    
+
     def build_decision_tree_table(self) -> pd.DataFrame:
         """
         Build the Decision Tree Table from all experiments.
@@ -134,7 +132,14 @@ class DecisionTreeAnalyzer:
             raise ValueError("No experiments added. Call add_experiment() first.")
         
         # Prepare features and target
-        feature_cols = ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']
+        feature_cols = [
+            'Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx',
+            'number_of_nodes', 'avg_text_length',
+            'text_vocab_entropy', 'label_balance_entropy', 'output_dimension'
+        ]
+        # Filter to only columns that exist and have data
+        feature_cols = [c for c in feature_cols if c in self.dt_table.columns 
+                        and self.dt_table[c].notna().any()]
         X = self.dt_table[feature_cols].copy()
         
         # Encode Text_Idx (categorical)
@@ -213,7 +218,12 @@ class DecisionTreeAnalyzer:
         
         plt.figure(figsize=figsize)
         
-        feature_names = ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']
+        # feature_names = ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']
+        feature_names = [
+            'Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx',
+            'number_of_nodes', 'avg_text_length',
+            'text_vocab_entropy', 'label_balance_entropy', 'output_dimension'
+        ]
         
         # Get class names
         if 'Performance_Band' in self.feature_encoders:

@@ -9,6 +9,7 @@ import networkx as nx
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from itertools import combinations
+from sklearn.base import defaultdict
 from tqdm import tqdm
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
@@ -91,10 +92,12 @@ class TAG:
         self.graph = graph
         self.data = None  # PyTorch Geometric Data object
         self.metadata = {}
-        
+    
     def get_identifier(self) -> str:
-        """Get unique identifier for this TAG variant."""
-        return f"T{self.task_idx}_N{self.node_idx}_E{self.edge_idx}_X{self.text_idx}"
+        base = f"T{self.task_idx}_N{self.node_idx}_E{self.edge_idx}_X{self.text_idx}"
+        if hasattr(self, 'similarity_threshold') and self.similarity_threshold:
+            base += f"_S{self.similarity_threshold}"
+        return base
     
     def to_pyg_data(self, node_list: List, embeddings: np.ndarray, 
                     labels: np.ndarray, device: str = 'cpu') -> Data:
@@ -272,7 +275,7 @@ class TAGBuilder:
         embeddings_norm = normalize(embeddings, axis=1)
         
         # Find nearest neighbors
-        nbrs = NearestNeighbors(n_neighbors=k+1, metric='cosine', n_jobs=-1)
+        nbrs = NearestNeighbors(n_neighbors=k+1, metric='cosine', n_jobs=1)
         nbrs.fit(embeddings_norm)
         distances, indices = nbrs.kneighbors(embeddings_norm)
         
@@ -353,6 +356,7 @@ class TAGBuilder:
             'num_nodes': graph.number_of_nodes(),
             'num_edges': graph.number_of_edges()
         }
+        tag.similarity_threshold = similarity_threshold  # e.g. 'b' or 'c'
         
         return tag
     

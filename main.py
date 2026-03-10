@@ -3,11 +3,15 @@ Main Orchestration Script for Ontological Generalization Framework
 Demonstrates end-to-end pipeline for TAG experiments.
 """
 
-import argparse
 import numpy as np
 from pathlib import Path
 from typing import List, Dict
+from datetime import datetime
 import torch
+import math
+import csv
+from collections import Counter
+from sklearn.preprocessing import normalize
 
 # Import framework modules
 from data_manager import ArxivDataManager
@@ -134,15 +138,7 @@ class OntologicalExperimentPipeline:
         return experiment_space
     
     def run_experiment(self, exp_config: Dict) -> Dict:
-        """
-        Run a single experiment.
-        
-        Args:
-            exp_config: Experiment configuration
-        
-        Returns:
-            Results dictionary
-        """
+
         # Build TAG
         tag = self.tag_builder.build(
             task_idx=exp_config['task_idx'],
@@ -151,56 +147,50 @@ class OntologicalExperimentPipeline:
             text_idx=exp_config['text_idx'],
             similarity_threshold=exp_config['similarity_threshold']
         )
-        
-        # Get appropriate embeddings and labels based on node type
-        # Use dynamic num_classes from data_manager
+
+        # Get embeddings and labels based on node type
         num_classes = self.data_manager.num_classes or self.config.get('num_classes', 10)
-        
+
         if exp_config['node_idx'] == 8:  # author
             embeddings = self.data_manager.author_embeddings
             node_list = self.data_manager.author_list
-            # For authors, use most common category from their papers
             labels = self.data_manager.get_author_category_labels(num_classes=num_classes)
         else:  # paper (7) or journal (9)
             embeddings = self.data_manager.article_embeddings
             node_list = list(self.data_manager.df['id'])
             labels = self.data_manager.get_category_labels(num_classes=num_classes)
-        
-        # Normalize embeddings
-        from sklearn.preprocessing import normalize
+
         embeddings = normalize(embeddings, axis=1).astype(np.float32)
-        
+
         # Setup training pipeline
         def model_factory(**kwargs):
             return ModelFactory.create_model(
                 model_type=self.config.get('model_type', 'sage'),
                 **kwargs
             )
-        
+
         pipeline = TrainingPipeline(
             model_factory=model_factory,
             device=self.config.get('device', 'cuda' if torch.cuda.is_available() else 'cpu')
         )
-        
-        # Run experiment
+
         model_config = {
             'hidden_dim': self.config.get('hidden_dim', 256),
             'dropout': self.config.get('dropout', 0.5)
         }
-        
+
         trainer_config = {
             'lr': self.config.get('lr', 0.001),
             'weight_decay': self.config.get('weight_decay', 5e-4),
             'epochs': self.config.get('epochs', 200),
             'patience': self.config.get('patience', 50)
         }
-        
-        # Save model path
+
         save_model_path = None
         if self.config.get('save_models', False):
             save_model_path = str(Path(self.config['output_dir']) / 'models' / f"model_{tag.get_identifier()}.pt")
             Path(save_model_path).parent.mkdir(exist_ok=True, parents=True)
-        
+
         results = pipeline.run_experiment(
             tag=tag,
             embeddings=embeddings,
@@ -212,7 +202,37 @@ class OntologicalExperimentPipeline:
             save_model_path=save_model_path,
             save_training_history=self.config.get('save_training_history', False)
         )
-        
+
+        # Compute and attach stats
+        G = tag.graph
+        all_words = []
+        for row in self.data_manager.df.itertuples():
+            text = f"{getattr(row, 'title', '') or ''} {getattr(row, 'abstract', '') or ''}"
+            all_words.extend(text.lower().split())
+
+        counts = Counter(all_words)
+        total = sum(counts.values())
+        text_vocab_entropy = -sum((c / total) * math.log2(c / total) for c in counts.values())
+
+        label_counts = self.data_manager.df['cat_top'].value_counts()
+        label_probs = label_counts / label_counts.sum()
+        label_balance_entropy = -sum(p * math.log2(p) for p in label_probs)
+
+        avg_text_length = np.mean([
+            len(str(getattr(row, 'title', '') or '')) + len(str(getattr(row, 'abstract', '') or ''))
+            for row in self.data_manager.df.itertuples()
+        ])
+
+        results['stats'] = {
+            'number_of_nodes': G.number_of_nodes(),
+            'avg_text_length': avg_text_length,
+            'text_vocab_entropy': text_vocab_entropy,
+            'label_balance_entropy': label_balance_entropy,
+            'task_type': 'node_categorical',
+            'output_dimension': num_classes,
+            'normalized_score': results['test_metrics']['top1'],
+        }
+
         return results
     
     def run_all_experiments(self):
@@ -232,22 +252,41 @@ class OntologicalExperimentPipeline:
             
             try:
                 results = self.run_experiment(exp_config)
-                
-                # Track results
                 self.performance_tracker.add_result(results)
-                
-                # Add to analyzer
+
+                stream_path = Path(self.config['output_dir']) / 'analysis' / 'results_stream.csv'
+                stream_path.parent.mkdir(exist_ok=True, parents=True)
+                row = {
+                    'Task_Idx': exp_config['task_idx'],
+                    'Node_Idx': exp_config['node_idx'],
+                    'Edge_Idx': exp_config['edge_idx'],
+                    'Text_Idx': exp_config['text_idx'],
+                    **results['test_metrics'],
+                    **results.get('stats', {})
+                }
+                write_header = not stream_path.exists()
+                with open(stream_path, 'a', newline='') as f:
+                    writer = csv.DictWriter(f, fieldnames=row.keys())
+                    if write_header:
+                        writer.writeheader()
+                    writer.writerow(row)
+
                 self.analyzer.add_experiment(
                     task_idx=exp_config['task_idx'],
                     node_idx=exp_config['node_idx'],
                     edge_idx=exp_config['edge_idx'],
                     text_idx=exp_config['text_idx'],
-                    test_metrics=results['test_metrics']
+                    test_metrics=results['test_metrics'],
+                    stats=results.get('stats', None)   # <-- add this
                 )
                 
             except Exception as e:
-                print(f"❌ Experiment failed: {e}")
+                print(f"Experiment failed: {e}")
                 continue
+        
+            # if i + 1 == 23:
+            #     print("\n⏹ Stopping after experiment 23 as planned.")
+            #     break
         
         print("\n✅ All experiments complete\n")
     
@@ -260,6 +299,18 @@ class OntologicalExperimentPipeline:
         # Build Decision Tree Table
         self.analyzer.build_decision_tree_table()
         
+        # Analyze best configurations
+        self.analyzer.analyze_best_configurations(top_k=self.config.get('top_k', 5))
+        
+        # Analyze by ontology
+        self.analyzer.analyze_by_ontology()
+        
+        # Save analysis and results FIRST before anything that can crash
+        analysis_dir = Path(self.config['output_dir']) / 'analysis'
+        self.analyzer.save_analysis(str(analysis_dir))
+        results_path = analysis_dir / 'all_results.json'
+        self.performance_tracker.save_results(str(results_path))
+        
         # Train Decision Tree
         if len(self.analyzer.dt_table) >= 5:
             dt_results = self.analyzer.train_decision_tree(
@@ -270,23 +321,11 @@ class OntologicalExperimentPipeline:
             
             # Plot Decision Tree
             if self.config.get('plot_decision_tree', True):
-                plot_path = Path(self.config['output_dir']) / 'analysis' / 'decision_tree.png'
-                plot_path.parent.mkdir(exist_ok=True, parents=True)
-                self.analyzer.plot_decision_tree(save_path=str(plot_path))
-        
-        # Analyze best configurations
-        self.analyzer.analyze_best_configurations(top_k=self.config.get('top_k', 5))
-        
-        # Analyze by ontology
-        self.analyzer.analyze_by_ontology()
-        
-        # Save analysis
-        analysis_dir = Path(self.config['output_dir']) / 'analysis'
-        self.analyzer.save_analysis(str(analysis_dir))
-        
-        # Save performance tracker
-        results_path = analysis_dir / 'all_results.json'
-        self.performance_tracker.save_results(str(results_path))
+                try:
+                    plot_path = Path(self.config['output_dir']) / 'analysis' / 'decision_tree.png'
+                    self.analyzer.plot_decision_tree(save_path=str(plot_path))
+                except Exception as e:
+                    print(f"⚠ Decision tree plot failed: {e}")
         
         print("\n✅ Meta-analysis complete\n")
     
@@ -311,85 +350,45 @@ class OntologicalExperimentPipeline:
         print("="*80)
 
 
-def parse_args():
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description='Ontological Generalization Framework')
-    parser.add_argument('--data_path', type=str, default='data\arxiv_subset_10k.jsonl',
-                        help='Path to ArXiv JSONL file')
-    parser.add_argument('--output_dir', type=str, default='output',
-                        help='Output directory for results')
-    parser.add_argument('--embedding_dir', type=str, default='data',
-                        help='Directory for embeddings')
-    parser.add_argument('--subset_size', type=int, default=None,
-                        help='Number of articles to use (None = all)')
-    parser.add_argument('--use_precomputed', action='store_true',
-                        help='Use precomputed embeddings')
-    parser.add_argument('--model_type', type=str, default='sage',
-                        choices=['sage', 'gcn', 'gat'],
-                        help='GNN model type')
-    parser.add_argument('--hidden_dim', type=int, default=256,
-                        help='Hidden dimension')
-    parser.add_argument('--epochs', type=int, default=200,
-                        help='Number of training epochs')
-    parser.add_argument('--lr', type=float, default=0.001,
-                        help='Learning rate')
-    parser.add_argument('--device', type=str, default='auto',
-                        help='Device (cuda/cpu/auto)')
-    parser.add_argument('--num_classes', type=int, default=10,
-                        help='Number of classes')
-    
-    return parser.parse_args()
-
-
 def main():
-    """Main entry point."""
-    args = parse_args()
-    
-    # Determine device
-    if args.device == 'auto':
-        device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    else:
-        device = args.device
-    
-    # Build configuration
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     config = {
         # Data
-        'data_path': args.data_path,
-        'subset_size': args.subset_size,
-        'embedding_dir': args.embedding_dir,
-        'use_precomputed_embeddings': args.use_precomputed,
+        'data_path': r'data\arxiv_subset_10k.jsonl',
+        'subset_size': None,                  # int to load a subset, None = all
+        'embedding_dir': 'data',              # folder where .npy files are saved/loaded
+        'use_precomputed_embeddings': True,
         'save_embeddings': True,
-        
+
         # Ontological space
-        'task_indices': [1],  # node_categorical 
-        'node_indices': [7, 8],  # paper, author
-        'edge_indices': [10, 11],  # coauthorship, cosine
-        'text_indices': ['a', 'b'],  # super, standard
-        'similarity_thresholds': ['b', 'c'],  # 75%, 90%
-        
+        'task_indices': [1],                  # node_categorical
+        'node_indices': [7, 8],               # paper, author
+        'edge_indices': [10, 11],             # coauthorship, cosine
+        'text_indices': ['a', 'b', 'c', 'd', 'e'],          # super, standard
+        'similarity_thresholds': ['a', 'b', 'c'],           # 75%, 90%    
+
         # Model
-        'model_type': args.model_type,
-        'hidden_dim': args.hidden_dim,
+        'model_type': 'sage',                 # sage | gcn | gat
+        'hidden_dim': 256,
         'dropout': 0.5,
-        'num_classes': args.num_classes,
-        
+
         # Training
-        'lr': args.lr,
+        'lr': 0.001,
         'weight_decay': 5e-4,
-        'epochs': args.epochs,
+        'epochs': 200,
         'patience': 50,
-        'device': device,
-        
+        'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+
         # Output
-        'output_dir': args.output_dir,
-        'save_models': True,  # Set to True to save trained models        'save_training_history': True,  # Set to True to save training curves        
+        'output_dir': f'output/run_{run_id}',
+        'save_models': True,
+        'save_training_history': True,
         'dt_max_depth': 8,
         'dt_min_samples_split': 8,
         'plot_decision_tree': True,
         'top_k': 5,
     }
-    
-    # Create and run pipeline
+
     pipeline = OntologicalExperimentPipeline(config)
     pipeline.run()
 

@@ -137,14 +137,15 @@ class GNNTrainer:
             "cosine": cosine_mean
         }
     
-    def train(self, data, num_classes: int, verbose: bool = True) -> Dict[str, float]:
+    def train(self, data, num_classes: int, verbose: bool = True, early_stopping: bool = False) -> Dict[str, float]:
         """
-        Full training loop with early stopping.
+        Full training loop.
         
         Args:
             data: PyTorch Geometric Data object
             num_classes: Number of classes
             verbose: Print progress
+            early_stopping: Enable early stopping (default False for comparable results)
         
         Returns:
             Test metrics
@@ -170,7 +171,7 @@ class GNNTrainer:
                 'val_metrics': val_metrics
             })
             
-            # Check for improvement
+            # Track best state
             if val_metrics["kl"] < self.best_val_kl:
                 self.best_val_kl = val_metrics["kl"]
                 self.best_state = self.model.state_dict()
@@ -181,18 +182,18 @@ class GNNTrainer:
             # Print progress
             if verbose and (epoch % 10 == 0 or epoch == 1):
                 print(f"Epoch {epoch:03d} | "
-                      f"Loss {loss:.4f} | "
-                      f"Train KL {train_metrics['kl']:.4f} | "
-                      f"Val KL {val_metrics['kl']:.4f} | "
-                      f"Val top1 {val_metrics['top1']:.3f} | "
-                      f"Val cos {val_metrics['cosine']:.3f}")
+                    f"Loss {loss:.4f} | "
+                    f"Train KL {train_metrics['kl']:.4f} | "
+                    f"Val KL {val_metrics['kl']:.4f} | "
+                    f"Val top1 {val_metrics['top1']:.3f} | "
+                    f"Val cos {val_metrics['cosine']:.3f}")
             
-            # Early stopping
-            if no_improve_count >= self.patience:
+            # Early stopping (disabled by default)
+            if early_stopping and no_improve_count >= self.patience:
                 print(f"\n⚠ Early stopping at epoch {epoch}")
                 break
         
-        # Load best model
+        # Load best state
         if self.best_state is not None:
             self.model.load_state_dict(self.best_state)
         
