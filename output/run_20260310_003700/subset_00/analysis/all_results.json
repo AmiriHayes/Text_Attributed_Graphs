@@ -1,0 +1,1362 @@
+[
+  {
+    "tag_id": "T1_N7_E10_Xa",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 10,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 0.9554168581962585,
+      "top1": 0.777,
+      "top3": 0.9436666666666667,
+      "cosine": 0.8018181920051575
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "coauthorship",
+      "text_fidelity": "super",
+      "num_nodes": 10000,
+      "num_edges": 4917
+    },
+    "num_nodes": 10000,
+    "num_edges": 4917,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.777
+    }
+  },
+  {
+    "tag_id": "T1_N7_E10_Xb",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 10,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 0.9643904566764832,
+      "top1": 0.7806666666666666,
+      "top3": 0.929,
+      "cosine": 0.8030605316162109
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "coauthorship",
+      "text_fidelity": "standard",
+      "num_nodes": 10000,
+      "num_edges": 4917
+    },
+    "num_nodes": 10000,
+    "num_edges": 4917,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7806666666666666
+    }
+  },
+  {
+    "tag_id": "T1_N7_E10_Xc",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 10,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 0.9698768854141235,
+      "top1": 0.7793333333333333,
+      "top3": 0.939,
+      "cosine": 0.8003854751586914
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "coauthorship",
+      "text_fidelity": "mid",
+      "num_nodes": 10000,
+      "num_edges": 4917
+    },
+    "num_nodes": 10000,
+    "num_edges": 4917,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7793333333333333
+    }
+  },
+  {
+    "tag_id": "T1_N7_E10_Xd",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 10,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 0.9502071142196655,
+      "top1": 0.782,
+      "top3": 0.9416666666666667,
+      "cosine": 0.8027856349945068
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "coauthorship",
+      "text_fidelity": "poor",
+      "num_nodes": 10000,
+      "num_edges": 4917
+    },
+    "num_nodes": 10000,
+    "num_edges": 4917,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.782
+    }
+  },
+  {
+    "tag_id": "T1_N7_E10_Xe",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 10,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 0.9620808959007263,
+      "top1": 0.7816666666666666,
+      "top3": 0.9343333333333333,
+      "cosine": 0.8030691742897034
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "coauthorship",
+      "text_fidelity": "baseline",
+      "num_nodes": 10000,
+      "num_edges": 4917
+    },
+    "num_nodes": 10000,
+    "num_edges": 4917,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7816666666666666
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xa_Sa",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 1.0784212350845337,
+      "top1": 0.773,
+      "top3": 0.9316666666666666,
+      "cosine": 0.7919746041297913
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "super",
+      "num_nodes": 10000,
+      "num_edges": 21479
+    },
+    "num_nodes": 10000,
+    "num_edges": 21479,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.773
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xa_Sb",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 0.9899336099624634,
+      "top1": 0.769,
+      "top3": 0.9313333333333333,
+      "cosine": 0.7935534119606018
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "super",
+      "num_nodes": 10000,
+      "num_edges": 737
+    },
+    "num_nodes": 10000,
+    "num_edges": 737,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.769
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xa_Sc",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 0.933748722076416,
+      "top1": 0.7783333333333333,
+      "top3": 0.9346666666666666,
+      "cosine": 0.8010592460632324
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "super",
+      "num_nodes": 10000,
+      "num_edges": 12
+    },
+    "num_nodes": 10000,
+    "num_edges": 12,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7783333333333333
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xb_Sa",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 1.0657213926315308,
+      "top1": 0.7756666666666666,
+      "top3": 0.928,
+      "cosine": 0.7950118780136108
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "standard",
+      "num_nodes": 10000,
+      "num_edges": 21479
+    },
+    "num_nodes": 10000,
+    "num_edges": 21479,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7756666666666666
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xb_Sb",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 0.9818545579910278,
+      "top1": 0.7633333333333333,
+      "top3": 0.934,
+      "cosine": 0.7911654710769653
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "standard",
+      "num_nodes": 10000,
+      "num_edges": 737
+    },
+    "num_nodes": 10000,
+    "num_edges": 737,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7633333333333333
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xb_Sc",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 0.945801854133606,
+      "top1": 0.7693333333333333,
+      "top3": 0.9356666666666666,
+      "cosine": 0.7954068779945374
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "standard",
+      "num_nodes": 10000,
+      "num_edges": 12
+    },
+    "num_nodes": 10000,
+    "num_edges": 12,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7693333333333333
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xc_Sa",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 1.0763510465621948,
+      "top1": 0.7746666666666666,
+      "top3": 0.9346666666666666,
+      "cosine": 0.794446587562561
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "mid",
+      "num_nodes": 10000,
+      "num_edges": 21479
+    },
+    "num_nodes": 10000,
+    "num_edges": 21479,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7746666666666666
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xc_Sb",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 0.9889762997627258,
+      "top1": 0.769,
+      "top3": 0.9333333333333333,
+      "cosine": 0.795182466506958
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "mid",
+      "num_nodes": 10000,
+      "num_edges": 737
+    },
+    "num_nodes": 10000,
+    "num_edges": 737,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.769
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xc_Sc",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 0.9600383043289185,
+      "top1": 0.77,
+      "top3": 0.9353333333333333,
+      "cosine": 0.79461669921875
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "mid",
+      "num_nodes": 10000,
+      "num_edges": 12
+    },
+    "num_nodes": 10000,
+    "num_edges": 12,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.77
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xd_Sa",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 1.0622003078460693,
+      "top1": 0.776,
+      "top3": 0.9293333333333333,
+      "cosine": 0.7943041920661926
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "poor",
+      "num_nodes": 10000,
+      "num_edges": 21479
+    },
+    "num_nodes": 10000,
+    "num_edges": 21479,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.776
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xd_Sb",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 0.9632983207702637,
+      "top1": 0.7746666666666666,
+      "top3": 0.9363333333333334,
+      "cosine": 0.7963001132011414
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "poor",
+      "num_nodes": 10000,
+      "num_edges": 737
+    },
+    "num_nodes": 10000,
+    "num_edges": 737,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7746666666666666
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xd_Sc",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 0.9392634034156799,
+      "top1": 0.769,
+      "top3": 0.9336666666666666,
+      "cosine": 0.7964233160018921
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "poor",
+      "num_nodes": 10000,
+      "num_edges": 12
+    },
+    "num_nodes": 10000,
+    "num_edges": 12,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.769
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xe_Sa",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 1.0267401933670044,
+      "top1": 0.7806666666666666,
+      "top3": 0.9316666666666666,
+      "cosine": 0.798570990562439
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "baseline",
+      "num_nodes": 10000,
+      "num_edges": 21479
+    },
+    "num_nodes": 10000,
+    "num_edges": 21479,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7806666666666666
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xe_Sb",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 0.9864903688430786,
+      "top1": 0.767,
+      "top3": 0.9273333333333333,
+      "cosine": 0.7924957871437073
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "baseline",
+      "num_nodes": 10000,
+      "num_edges": 737
+    },
+    "num_nodes": 10000,
+    "num_edges": 737,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.767
+    }
+  },
+  {
+    "tag_id": "T1_N7_E11_Xe_Sc",
+    "task_idx": 1,
+    "node_idx": 7,
+    "edge_idx": 11,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 0.9517726302146912,
+      "top1": 0.7686666666666667,
+      "top3": 0.9343333333333333,
+      "cosine": 0.7957104444503784
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "paper",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "baseline",
+      "num_nodes": 10000,
+      "num_edges": 12
+    },
+    "num_nodes": 10000,
+    "num_edges": 12,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 10000,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.7686666666666667
+    }
+  },
+  {
+    "tag_id": "T1_N8_E10_Xa",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 10,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 0.2263319045305252,
+      "top1": 0.9474618388356407,
+      "top3": 0.9839072299136197,
+      "cosine": 0.9527638554573059
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "coauthorship",
+      "text_fidelity": "super",
+      "num_nodes": 28170,
+      "num_edges": 168124
+    },
+    "num_nodes": 28170,
+    "num_edges": 168124,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9474618388356407
+    }
+  },
+  {
+    "tag_id": "T1_N8_E10_Xb",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 10,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 0.2263013869524002,
+      "top1": 0.9480534847946989,
+      "top3": 0.9846172050644895,
+      "cosine": 0.952583372592926
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "coauthorship",
+      "text_fidelity": "standard",
+      "num_nodes": 28170,
+      "num_edges": 168124
+    },
+    "num_nodes": 28170,
+    "num_edges": 168124,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9480534847946989
+    }
+  },
+  {
+    "tag_id": "T1_N8_E10_Xc",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 10,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 0.22551357746124268,
+      "top1": 0.9485268015619454,
+      "top3": 0.9846172050644895,
+      "cosine": 0.9524441957473755
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "coauthorship",
+      "text_fidelity": "mid",
+      "num_nodes": 28170,
+      "num_edges": 168124
+    },
+    "num_nodes": 28170,
+    "num_edges": 168124,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9485268015619454
+    }
+  },
+  {
+    "tag_id": "T1_N8_E10_Xd",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 10,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 0.22480709850788116,
+      "top1": 0.9478168264110756,
+      "top3": 0.9858004969826056,
+      "cosine": 0.9526581764221191
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "coauthorship",
+      "text_fidelity": "poor",
+      "num_nodes": 28170,
+      "num_edges": 168124
+    },
+    "num_nodes": 28170,
+    "num_edges": 168124,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9478168264110756
+    }
+  },
+  {
+    "tag_id": "T1_N8_E10_Xe",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 10,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 0.21631379425525665,
+      "top1": 0.9490001183291918,
+      "top3": 0.9862738137498521,
+      "cosine": 0.9537173509597778
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "coauthorship",
+      "text_fidelity": "baseline",
+      "num_nodes": 28170,
+      "num_edges": 168124
+    },
+    "num_nodes": 28170,
+    "num_edges": 168124,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9490001183291918
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xa_Sa",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 0.2503359019756317,
+      "top1": 0.9435569755058573,
+      "top3": 0.9833155839545616,
+      "cosine": 0.9487547278404236
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "super",
+      "num_nodes": 28170,
+      "num_edges": 155219
+    },
+    "num_nodes": 28170,
+    "num_edges": 148140,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9435569755058573
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xa_Sb",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 0.246535524725914,
+      "top1": 0.9452135841912199,
+      "top3": 0.9833155839545616,
+      "cosine": 0.9488945007324219
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "super",
+      "num_nodes": 28170,
+      "num_edges": 98845
+    },
+    "num_nodes": 28170,
+    "num_edges": 91766,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9452135841912199
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xa_Sc",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "a",
+    "test_metrics": {
+      "kl": 0.22737233340740204,
+      "top1": 0.9466335344929594,
+      "top3": 0.9853271802153591,
+      "cosine": 0.9521211981773376
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "super",
+      "num_nodes": 28170,
+      "num_edges": 76954
+    },
+    "num_nodes": 28170,
+    "num_edges": 69875,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9466335344929594
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xb_Sa",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 0.24671703577041626,
+      "top1": 0.9460418885339014,
+      "top3": 0.98319725476275,
+      "cosine": 0.9505468606948853
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "standard",
+      "num_nodes": 28170,
+      "num_edges": 155219
+    },
+    "num_nodes": 28170,
+    "num_edges": 148140,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9460418885339014
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xb_Sb",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 0.24162708222866058,
+      "top1": 0.9453319133830316,
+      "top3": 0.9840255591054313,
+      "cosine": 0.9504284262657166
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "standard",
+      "num_nodes": 28170,
+      "num_edges": 98845
+    },
+    "num_nodes": 28170,
+    "num_edges": 91766,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9453319133830316
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xb_Sc",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "b",
+    "test_metrics": {
+      "kl": 0.23203663527965546,
+      "top1": 0.9458052301502781,
+      "top3": 0.9843805466808662,
+      "cosine": 0.9513354301452637
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "standard",
+      "num_nodes": 28170,
+      "num_edges": 76954
+    },
+    "num_nodes": 28170,
+    "num_edges": 69875,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9458052301502781
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xc_Sa",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 0.23693513870239258,
+      "top1": 0.9469885220683942,
+      "top3": 0.9843805466808662,
+      "cosine": 0.951085090637207
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "mid",
+      "num_nodes": 28170,
+      "num_edges": 155219
+    },
+    "num_nodes": 28170,
+    "num_edges": 148140,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9469885220683942
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xc_Sb",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 0.2512035071849823,
+      "top1": 0.9429653295467992,
+      "top3": 0.9833155839545616,
+      "cosine": 0.9491923451423645
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "mid",
+      "num_nodes": 28170,
+      "num_edges": 98845
+    },
+    "num_nodes": 28170,
+    "num_edges": 91766,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9429653295467992
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xc_Sc",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "c",
+    "test_metrics": {
+      "kl": 0.22136636078357697,
+      "top1": 0.9469885220683942,
+      "top3": 0.9828422671873152,
+      "cosine": 0.952360212802887
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "mid",
+      "num_nodes": 28170,
+      "num_edges": 76954
+    },
+    "num_nodes": 28170,
+    "num_edges": 69875,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9469885220683942
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xd_Sa",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 0.24601025879383087,
+      "top1": 0.9459235593420897,
+      "top3": 0.9843805466808662,
+      "cosine": 0.9503204822540283
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "poor",
+      "num_nodes": 28170,
+      "num_edges": 155219
+    },
+    "num_nodes": 28170,
+    "num_edges": 148140,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9459235593420897
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xd_Sb",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 0.2371932864189148,
+      "top1": 0.9475801680274524,
+      "top3": 0.983788900721808,
+      "cosine": 0.9519847631454468
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "poor",
+      "num_nodes": 28170,
+      "num_edges": 98845
+    },
+    "num_nodes": 28170,
+    "num_edges": 91766,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9475801680274524
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xd_Sc",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "d",
+    "test_metrics": {
+      "kl": 0.22716981172561646,
+      "top1": 0.9471068512602059,
+      "top3": 0.9844988758726778,
+      "cosine": 0.9529193043708801
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "poor",
+      "num_nodes": 28170,
+      "num_edges": 76954
+    },
+    "num_nodes": 28170,
+    "num_edges": 69875,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9471068512602059
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xe_Sa",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 0.24493296444416046,
+      "top1": 0.9437936338894806,
+      "top3": 0.98319725476275,
+      "cosine": 0.9497581124305725
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "baseline",
+      "num_nodes": 28170,
+      "num_edges": 155219
+    },
+    "num_nodes": 28170,
+    "num_edges": 148140,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9437936338894806
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xe_Sb",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 0.249859020113945,
+      "top1": 0.9445036090403502,
+      "top3": 0.9826056088036919,
+      "cosine": 0.9496492743492126
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "baseline",
+      "num_nodes": 28170,
+      "num_edges": 98845
+    },
+    "num_nodes": 28170,
+    "num_edges": 91766,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9445036090403502
+    }
+  },
+  {
+    "tag_id": "T1_N8_E11_Xe_Sc",
+    "task_idx": 1,
+    "node_idx": 8,
+    "edge_idx": 11,
+    "text_idx": "e",
+    "test_metrics": {
+      "kl": 0.22344815731048584,
+      "top1": 0.9478168264110756,
+      "top3": 0.9833155839545616,
+      "cosine": 0.9521022439002991
+    },
+    "metadata": {
+      "task": "node_categorical",
+      "node_type": "author",
+      "edge_type": "cosine_similarity",
+      "text_fidelity": "baseline",
+      "num_nodes": 28170,
+      "num_edges": 76954
+    },
+    "num_nodes": 28170,
+    "num_edges": 69875,
+    "feature_dim": 384,
+    "num_classes": 18,
+    "stats": {
+      "number_of_nodes": 28170,
+      "avg_text_length": 893.2064,
+      "text_vocab_entropy": 10.850194353020465,
+      "label_balance_entropy": 3.415326781082063,
+      "task_type": "node_categorical",
+      "output_dimension": 18,
+      "normalized_score": 0.9478168264110756
+    }
+  }
+]
