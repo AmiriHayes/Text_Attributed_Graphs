@@ -304,6 +304,116 @@ class ArxivDataManager:
         print(f"✅ Generated paper labels: {Y.shape}, {Y.sum()} nodes with labels")
         return Y
     
+    def get_paper_scalar_labels(self, graph) -> np.ndarray:
+        """
+        Compute scalar labels for papers: normalized sum of PageRank,
+        local clustering coefficient, and degree centrality on the graph.
+
+        Args:
+            graph: NetworkX graph built for this TAG variant
+
+        Returns:
+            Scalar labels (N_papers, 1) float32, normalized to [0, 1]
+        """
+        import networkx as nx
+        paper_ids = list(self.df['id'])
+        N = len(paper_ids)
+
+        pagerank    = nx.pagerank(graph, alpha=0.85)
+        clustering  = nx.clustering(graph)
+        degree_cent = nx.degree_centrality(graph)
+
+        def _norm(d, keys):
+            vals = np.array([d.get(k, 0.0) for k in keys], dtype=np.float64)
+            vmin, vmax = vals.min(), vals.max()
+            if vmax > vmin:
+                vals = (vals - vmin) / (vmax - vmin)
+            return vals
+
+        pr  = _norm(pagerank,    paper_ids)
+        cl  = _norm(clustering,  paper_ids)
+        dc  = _norm(degree_cent, paper_ids)
+
+        combined = (pr + cl + dc) / 3.0  # already each in [0,1]
+        Y = combined.astype(np.float32).reshape(N, 1)
+        print(f"✅ Generated paper scalar labels: {Y.shape}, mean={Y.mean():.4f}")
+        return Y
+
+    def get_author_scalar_labels(self, graph) -> np.ndarray:
+        """
+        Compute scalar labels for authors: normalized sum of PageRank,
+        local clustering coefficient, and degree centrality on the graph.
+
+        Args:
+            graph: NetworkX graph built for this TAG variant
+
+        Returns:
+            Scalar labels (N_authors, 1) float32, normalized to [0, 1]
+        """
+        import networkx as nx
+        N = len(self.author_list)
+
+        pagerank    = nx.pagerank(graph, alpha=0.85)
+        clustering  = nx.clustering(graph)
+        degree_cent = nx.degree_centrality(graph)
+
+        def _norm(d, keys):
+            vals = np.array([d.get(k, 0.0) for k in keys], dtype=np.float64)
+            vmin, vmax = vals.min(), vals.max()
+            if vmax > vmin:
+                vals = (vals - vmin) / (vmax - vmin)
+            return vals
+
+        pr  = _norm(pagerank,    self.author_list)
+        cl  = _norm(clustering,  self.author_list)
+        dc  = _norm(degree_cent, self.author_list)
+
+        combined = (pr + cl + dc) / 3.0
+        Y = combined.astype(np.float32).reshape(N, 1)
+        print(f"✅ Generated author scalar labels: {Y.shape}, mean={Y.mean():.4f}")
+        return Y
+
+    def get_edge_category_labels(self, graph, node_type: str = 'author') -> tuple:
+        """
+        Compute binary edge labels: 0 = same top category, 1 = cross category.
+        Returns edge list and labels aligned to graph edge order.
+
+        Args:
+            graph: NetworkX graph for this TAG variant
+            node_type: 'author' or 'paper'
+
+        Returns:
+            (edge_list, labels) where edge_list is list of (u,v) tuples
+            and labels is np.ndarray of shape (E,) int64
+        """
+        if node_type == 'author':
+            node_to_cat = self.author_categories  # author -> category int
+        else:
+            # paper -> category int from df
+            node_to_cat = dict(zip(
+                self.df['id'].tolist(),
+                self.df['category_broad'].tolist()
+            ))
+
+        edge_list = list(graph.edges())
+        labels = []
+        for u, v in edge_list:
+            cat_u = node_to_cat.get(u, -1)
+            cat_v = node_to_cat.get(v, -1)
+            if cat_u < 0 or cat_v < 0:
+                labels.append(-1)  # unknown — will be masked out
+            elif cat_u == cat_v:
+                labels.append(0)   # same category
+            else:
+                labels.append(1)   # cross category
+
+        labels = np.array(labels, dtype=np.int64)
+        valid = (labels >= 0).sum()
+        cross = (labels == 1).sum()
+        print(f"✅ Edge labels: {len(labels)} edges, {valid} valid, "
+              f"{cross} cross-category ({100*cross/max(valid,1):.1f}%)")
+        return edge_list, labels
+
     def get_author_category_labels(self, num_classes: int = None) -> np.ndarray:
         """
         Get category labels for authors based on their most common paper category.

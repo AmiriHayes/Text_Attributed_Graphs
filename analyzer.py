@@ -14,44 +14,82 @@ from sklearn.preprocessing import LabelEncoder
 
 class PerformanceBand:
     """Performance band categorization for meta-analysis."""
+
+    ACCURACY_BANDS = [
+        (0.95, 'Excellent 10/10'),
+        (0.90, 'Great 9/10'),
+        (0.85, 'Very Good 8/10'),
+        (0.80, 'Good 7/10'),
+        (0.75, 'Above Average 6/10'),
+        (0.70, 'Average 5/10'),
+        (0.60, 'Below Average 4/10'),
+        (0.50, 'Weak 3/10'),
+        (0.40, 'Poor 2/10'),
+    ]
+
+    KL_BANDS = [
+        (0.10, 'Excellent 10/10'),
+        (0.20, 'Great 9/10'),
+        (0.30, 'Very Good 8/10'),
+        (0.40, 'Good 7/10'),
+        (0.55, 'Above Average 6/10'),
+        (0.75, 'Average 5/10'),
+        (1.00, 'Below Average 4/10'),
+        (1.40, 'Weak 3/10'),
+        (2.00, 'Poor 2/10'),
+    ]
+
+    R2_BANDS = [
+        (0.90, 'Excellent 10/10'),
+        (0.80, 'Great 9/10'),
+        (0.70, 'Very Good 8/10'),
+        (0.60, 'Good 7/10'),
+        (0.40, 'Above Average 6/10'),
+        (0.20, 'Average 5/10'),
+        (0.00, 'Below Average 4/10'),
+        (-0.25, 'Weak 3/10'),
+        (-1.00, 'Poor 2/10'),
+    ]
     
     @staticmethod
     def categorize_kl(kl: float) -> str:
-        """Categorize KL divergence into performance bands."""
-        if kl < 0.3:
-            return 'Excellent'
-        elif kl < 0.5:
-            return 'Good'
-        elif kl < 1.0:
-            return 'Fair'
-        else:
-            return 'Poor'
+        """Categorize KL divergence into 10 performance bands (lower is better)."""
+        if pd.isna(kl):
+            return 'N/A'
+        for threshold, label in PerformanceBand.KL_BANDS:
+            if kl <= threshold:
+                return label
+        return 'Worst 1/10'
     
     @staticmethod
     def categorize_accuracy(acc: float) -> str:
-        """Categorize accuracy into performance bands."""
-        if acc >= 0.9:
-            return 'Excellent 10/10'
-        elif acc >= 0.8:
-            return 'Good 9/10'
-        elif acc >= 0.7:
-            return 'Fair 8/10'
-        elif acc >= 0.6:
-            return 'Fair 7/10'
-        elif acc >= 0.5:
-            return 'Fair 6/10'
-        elif acc >= 0.4:
-            return 'Poor 5/10'
-        else:
-            return 'Poor <5/10'
+        """Categorize accuracy-like metrics into 10 performance bands (higher is better)."""
+        if pd.isna(acc):
+            return 'N/A'
+        for threshold, label in PerformanceBand.ACCURACY_BANDS:
+            if acc >= threshold:
+                return label
+        return 'Worst 1/10'
+
+    @staticmethod
+    def categorize_r2(r2: float) -> str:
+        """Categorize R2 into 10 performance bands (higher is better)."""
+        if pd.isna(r2):
+            return 'N/A'
+        for threshold, label in PerformanceBand.R2_BANDS:
+            if r2 >= threshold:
+                return label
+        return 'Worst 1/10'
     
     @staticmethod
     def categorize_metric(metric_name: str, value: float) -> str:
         """Categorize any metric into performance bands."""
         if metric_name == 'kl':
             return PerformanceBand.categorize_kl(value)
-        elif metric_name in ['top1', 'top3', 'cosine']:
+        elif metric_name in ['top1', 'top3', 'cosine', 'accuracy', 'f1']:
             return PerformanceBand.categorize_accuracy(value)
+        elif metric_name == 'r2':
+            return PerformanceBand.categorize_r2(value)
         else:
             raise ValueError(f"Unknown metric: {metric_name}")
 
@@ -68,12 +106,55 @@ class DecisionTreeAnalyzer:
         self.dt_table = pd.DataFrame()
         self.decision_tree = None
         self.feature_encoders = {}
+
+    def _resolve_task_type(self, test_metrics: Dict, stats: Optional[Dict]) -> str:
+        """Infer task type from stats first, then metrics as fallback."""
+        if stats and stats.get('task_type'):
+            return stats['task_type']
+        if 'top1' in test_metrics:
+            return 'node_categorical'
+        if 'accuracy' in test_metrics:
+            return 'edge_categorical'
+        if 'r2' in test_metrics:
+            return 'node_scalar'
+        return 'unknown'
+
+    def _resolve_primary_metric(self, task_type: str, test_metrics: Dict, stats: Optional[Dict]) -> tuple:
+        """Return metric name and value used for performance banding and ranking."""
+        # Use the normalized score if it is already task-aware.
+        if stats and not pd.isna(stats.get('normalized_score', np.nan)):
+            if task_type == 'node_scalar':
+                return 'r2', float(stats['normalized_score'])
+            return 'accuracy', float(stats['normalized_score'])
+
+        if task_type == 'node_scalar':
+            return 'r2', float(test_metrics.get('r2', np.nan))
+        if task_type == 'edge_categorical':
+            return 'accuracy', float(test_metrics.get('accuracy', np.nan))
+        if task_type == 'node_categorical':
+            return 'top1', float(test_metrics.get('top1', np.nan))
+
+        # Last-resort fallback for unknown task type.
+        for metric_name in ('top1', 'accuracy', 'r2', 'kl'):
+            if metric_name in test_metrics:
+                return metric_name, float(test_metrics.get(metric_name, np.nan))
+        return 'unknown', np.nan
         
     def add_experiment(self, task_idx: int, node_idx: int, edge_idx: int,
                    text_idx: str, test_metrics: Dict, stats: Dict = None):
-        
-        primary_metric = test_metrics.get('top1', 0.0)
-        performance_band = PerformanceBand.categorize_accuracy(primary_metric)
+
+        task_type = self._resolve_task_type(test_metrics, stats)
+        primary_metric_name, primary_metric_value = self._resolve_primary_metric(task_type, test_metrics, stats)
+        try:
+            performance_band = PerformanceBand.categorize_metric(primary_metric_name, primary_metric_value)
+        except ValueError:
+            performance_band = 'N/A'
+
+        normalized_score = np.nan
+        if stats and not pd.isna(stats.get('normalized_score', np.nan)):
+            normalized_score = float(stats['normalized_score'])
+        else:
+            normalized_score = float(primary_metric_value) if not pd.isna(primary_metric_value) else np.nan
         
         experiment = {
             'Task_Idx': task_idx,
@@ -84,15 +165,22 @@ class DecisionTreeAnalyzer:
             'Top1': test_metrics.get('top1', np.nan),
             'Top3': test_metrics.get('top3', np.nan),
             'Cosine': test_metrics.get('cosine', np.nan),
+            'Accuracy': test_metrics.get('accuracy', np.nan),
+            'F1': test_metrics.get('f1', np.nan),
+            'MAE': test_metrics.get('mae', np.nan),
+            'MSE': test_metrics.get('mse', np.nan),
+            'R2': test_metrics.get('r2', np.nan),
+            'Primary_Metric': primary_metric_name,
+            'Primary_Value': primary_metric_value,
             'Performance_Band': performance_band,
             # Stats columns — default to nan if not provided
             'number_of_nodes': stats.get('number_of_nodes', np.nan) if stats else np.nan,
             'avg_text_length': stats.get('avg_text_length', np.nan) if stats else np.nan,
             'text_vocab_entropy': stats.get('text_vocab_entropy', np.nan) if stats else np.nan,
             'label_balance_entropy': stats.get('label_balance_entropy', np.nan) if stats else np.nan,
-            'task_type': stats.get('task_type', np.nan) if stats else np.nan,
+            'task_type': task_type,
             'output_dimension': stats.get('output_dimension', np.nan) if stats else np.nan,
-            'normalized_score': stats.get('normalized_score', np.nan) if stats else np.nan,
+            'normalized_score': normalized_score,
         }
         
         self.experiments.append(experiment)
@@ -301,11 +389,11 @@ class DecisionTreeAnalyzer:
         if len(self.dt_table) == 0:
             raise ValueError("No experiments added.")
         
-        # Sort by Top1 accuracy (descending)
-        sorted_table = self.dt_table.sort_values('Top1', ascending=False)
+        # Task-agnostic ranking by normalized score.
+        sorted_table = self.dt_table.sort_values('normalized_score', ascending=False, na_position='last')
         
         print(f"\n{'='*60}")
-        print(f"Top {top_k} Configurations by Top-1 Accuracy")
+        print(f"Top {top_k} Configurations by Normalized Score")
         print(f"{'='*60}")
         print(sorted_table.head(top_k))
         
@@ -323,17 +411,14 @@ class DecisionTreeAnalyzer:
         
         results = {}
         
-        # Group by Task
-        results['by_task'] = self.dt_table.groupby('Task_Idx')['Top1'].agg(['mean', 'std', 'count'])
-        
-        # Group by Node
-        results['by_node'] = self.dt_table.groupby('Node_Idx')['Top1'].agg(['mean', 'std', 'count'])
-        
-        # Group by Edge
-        results['by_edge'] = self.dt_table.groupby('Edge_Idx')['Top1'].agg(['mean', 'std', 'count'])
-        
-        # Group by Text
-        results['by_text'] = self.dt_table.groupby('Text_Idx')['Top1'].agg(['mean', 'std', 'count'])
+        # Task-agnostic grouping by normalized score.
+        results['by_task'] = self.dt_table.groupby('Task_Idx')['normalized_score'].agg(['mean', 'std', 'count'])
+
+        results['by_node'] = self.dt_table.groupby('Node_Idx')['normalized_score'].agg(['mean', 'std', 'count'])
+
+        results['by_edge'] = self.dt_table.groupby('Edge_Idx')['normalized_score'].agg(['mean', 'std', 'count'])
+
+        results['by_text'] = self.dt_table.groupby('Text_Idx')['normalized_score'].agg(['mean', 'std', 'count'])
         
         print(f"\n{'='*60}")
         print(f"Performance by Task Index")

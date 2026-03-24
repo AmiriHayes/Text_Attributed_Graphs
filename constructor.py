@@ -9,7 +9,7 @@ import networkx as nx
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from itertools import combinations
-from sklearn.base import defaultdict
+from collections import defaultdict
 from tqdm import tqdm
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
@@ -142,12 +142,16 @@ class TAG:
         data.edge_index = edge_index.to(device)
         
         # Create train/val/test splits
-        has_target = (data.y.sum(dim=1) > 0).cpu().numpy()
-        idx = np.where(has_target)[0]
-        
+        # For categorical: nodes with any label > 0. For scalar (N,1): all nodes.
+        if labels.shape[1] == 1:
+            # scalar task — all nodes have a label
+            idx = np.arange(N)
+        else:
+            has_target = (data.y.sum(dim=1) > 0).cpu().numpy()
+            idx = np.where(has_target)[0]
+
         if len(idx) < 3:
             print(f"⚠ WARNING: Only {len(idx)} nodes with labels")
-            # Use all data for splits
             idx = np.arange(N)
         
         train_idx, test_idx = train_test_split(idx, train_size=0.7, random_state=42)
@@ -164,6 +168,85 @@ class TAG:
         data.val_mask = torch.tensor(mask_val).to(device)
         data.test_mask = torch.tensor(mask_test).to(device)
         
+        self.data = data
+        return data
+
+
+    def to_pyg_data_edge(self, node_list: List, embeddings: np.ndarray,
+                         edge_list: list, edge_labels: np.ndarray,
+                         device: str = 'cpu') -> Data:
+        """
+        Convert TAG to PyG Data for edge-level prediction.
+
+        Args:
+            node_list: List of node identifiers
+            embeddings: Node embeddings (N, feature_dim)
+            edge_list: List of (u, v) tuples from graph.edges()
+            edge_labels: Per-edge integer labels (E,), -1 = unknown
+            device: Device to place tensors on
+
+        Returns:
+            PyTorch Geometric Data object with edge-level masks
+        """
+        node_to_idx = {node: i for i, node in enumerate(node_list)}
+        N = len(node_list)
+
+        # Build full edge_index for message passing
+        G_copy = self.graph.copy() if self.graph else nx.Graph()
+        for node in node_list:
+            if node not in G_copy:
+                G_copy.add_node(node)
+
+        edges = [(node_to_idx[u], node_to_idx[v])
+                 for u, v in G_copy.edges()
+                 if u in node_to_idx and v in node_to_idx]
+
+        if len(edges) == 0:
+            edge_index = torch.empty((2, 0), dtype=torch.long)
+        else:
+            edge_index = torch.tensor(np.array(edges).T, dtype=torch.long)
+            edge_index = to_undirected(edge_index)
+
+        # Build target edge index (edges with known labels only)
+        valid_mask = edge_labels >= 0
+        valid_edges = [(node_to_idx[u], node_to_idx[v])
+                       for (u, v), ok in zip(edge_list, valid_mask) if ok
+                       and u in node_to_idx and v in node_to_idx]
+        valid_labels = edge_labels[valid_mask]
+
+        E = len(valid_edges)
+        if E == 0:
+            target_edge_index = torch.empty((2, 0), dtype=torch.long)
+            y_edge = torch.empty(0, dtype=torch.long)
+        else:
+            target_edge_index = torch.tensor(np.array(valid_edges).T, dtype=torch.long)
+            y_edge = torch.tensor(valid_labels, dtype=torch.long)
+
+        # Edge-level train/val/test split
+        edge_idx = np.arange(E)
+        if E >= 3:
+            train_eidx, test_eidx = train_test_split(edge_idx, train_size=0.7, random_state=42)
+            val_eidx, _ = train_test_split(train_eidx, test_size=0.15, random_state=42)
+        else:
+            train_eidx = val_eidx = test_eidx = edge_idx
+
+        edge_train_mask = np.zeros(E, bool)
+        edge_train_mask[train_eidx] = True
+        edge_val_mask = np.zeros(E, bool)
+        edge_val_mask[val_eidx] = True
+        edge_test_mask = np.zeros(E, bool)
+        edge_test_mask[test_eidx] = True
+
+        data = Data()
+        data.num_nodes = N
+        data.x = torch.tensor(embeddings, dtype=torch.float32).to(device)
+        data.edge_index = edge_index.to(device)
+        data.target_edge_index = target_edge_index.to(device)
+        data.y = y_edge.to(device)
+        data.train_mask = torch.tensor(edge_train_mask).to(device)
+        data.val_mask = torch.tensor(edge_val_mask).to(device)
+        data.test_mask = torch.tensor(edge_test_mask).to(device)
+
         self.data = data
         return data
 
@@ -356,8 +439,14 @@ class TAGBuilder:
             'num_nodes': graph.number_of_nodes(),
             'num_edges': graph.number_of_edges()
         }
-        tag.similarity_threshold = similarity_threshold  # e.g. 'b' or 'c'
-        
+        tag.similarity_threshold = similarity_threshold
+        if task_idx == 2:
+            tag.task_type = 'scalar'
+        elif task_idx == 3:
+            tag.task_type = 'edge_categorical'
+        else:
+            tag.task_type = 'categorical'
+
         return tag
     
     def save_tag(self, tag: TAG, output_dir: str):
