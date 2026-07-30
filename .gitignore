@@ -19,6 +19,18 @@ code/scratch/
 code/AUDIT_dataset_specificity.md
 code/SESSION_NOTES.md
 code/m2_m5_problem.pdf
+SESSION_NOTES.md
+
+# Legacy root-level files (local only, superseded by code/)
+analyzer.py
+constructor.py
+data_manager.py
+examples.py
+trainer.py
+models.py
+main.ipynb
+tag_variants_analysis.ipynb
+case_tree.png
 
 # Raw dataset directories (too large for GitHub)
 data/amazon/
