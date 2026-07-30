@@ -197,6 +197,115 @@ class SAGEEdgePredictor(nn.Module):
 # ModelFactory
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# MLP baseline models (Step 2 empirical equalization)
+# Mirror the GNN architecture (same hidden_dim, depth) but replace SAGEConv
+# with plain Linear layers. edge_index is accepted in forward() for API
+# compatibility with GNNTrainer but is never used — message-passing is the
+# ONLY structural difference between MLP and GNN.
+# ---------------------------------------------------------------------------
+
+class MLPPredictor(nn.Module):
+    """
+    MLP baseline for M1 / M2 node tasks.
+    Same depth as SAGEPredictor (2 Linear → BN → ReLU → MLP head);
+    forward(x, edge_index) signature matches SAGEPredictor for drop-in use
+    with GNNTrainer — edge_index is silently ignored.
+    """
+
+    def __init__(self, in_dim: int, hidden_dim: int, out_dim: int,
+                 dropout: float = 0.5, log_softmax_output: bool = True):
+        super().__init__()
+        self.fc1 = nn.Linear(in_dim, hidden_dim)
+        self.bn1 = nn.BatchNorm1d(hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.bn2 = nn.BatchNorm1d(hidden_dim)
+        self.mlp = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, out_dim),
+        )
+        self.dropout = dropout
+        self.log_softmax_output = log_softmax_output
+
+    def forward(self, x, edge_index=None):   # edge_index ignored
+        x = self.fc1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.fc2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        out = self.mlp(x)
+        if self.log_softmax_output:
+            return F.log_softmax(out, dim=-1)
+        return out
+
+
+class MLPEdgePredictor(nn.Module):
+    """
+    MLP baseline for M3 / M4 edge tasks.
+    Same depth as SAGEEdgePredictor; encodes each node independently (no
+    message-passing), then concatenates endpoint embeddings for edge scoring.
+    forward(x, edge_index, target_edge_index) matches SAGEEdgePredictor —
+    edge_index is accepted but ignored during node encoding.
+    """
+
+    def __init__(self, in_dim: int, hidden_dim: int, out_dim: int = 2,
+                 dropout: float = 0.5):
+        super().__init__()
+        self.fc1 = nn.Linear(in_dim, hidden_dim)
+        self.bn1 = nn.BatchNorm1d(hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.bn2 = nn.BatchNorm1d(hidden_dim)
+        self.edge_mlp = nn.Sequential(
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, out_dim),
+        )
+        self.dropout = dropout
+
+    def encode(self, x, edge_index=None):   # edge_index ignored
+        x = self.fc1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.fc2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+        x = F.dropout(x, p=self.dropout, training=self.training)
+        return x
+
+    def forward(self, x, edge_index, target_edge_index=None):
+        h = self.encode(x)
+        if target_edge_index is None:
+            target_edge_index = edge_index
+        src = h[target_edge_index[0]]
+        dst = h[target_edge_index[1]]
+        return self.edge_mlp(torch.cat([src, dst], dim=-1))
+
+
+class MLPModelFactory:
+    """Create MLP baseline models (Step 2 empirical equalization)."""
+
+    @staticmethod
+    def create(task_type: str, in_dim: int, hidden_dim: int,
+               out_dim: int, dropout: float = 0.5) -> nn.Module:
+        if task_type == 'categorical':
+            return MLPPredictor(in_dim, hidden_dim, out_dim, dropout, log_softmax_output=True)
+        elif task_type == 'scalar':
+            return MLPPredictor(in_dim, hidden_dim, 1, dropout, log_softmax_output=False)
+        elif task_type == 'edge_categorical':
+            return MLPEdgePredictor(in_dim, hidden_dim, 2, dropout)
+        elif task_type == 'edge_scalar':
+            return MLPEdgePredictor(in_dim, hidden_dim, 1, dropout)
+        else:
+            raise ValueError(f"MLPModelFactory: unsupported task_type '{task_type}'")
+
+
 class ModelFactory:
     """
     Factory for instantiating GNN models by task type.

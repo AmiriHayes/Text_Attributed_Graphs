@@ -1,0 +1,385 @@
+
+═════════════════════════  FILE CONFIRMATION  ══════════════════════════
+History:  720 rows  |  36 variants  |  20 (split,sample)  |  score=Final_Score  |  2.6% degen  |  0.0% NaN
+  task counts: {'M1': 240, 'M3': 120, 'M4': 120, 'M5': 240}
+Amazon:  1,920 rows  |  96 variants  |  20 (split,sample)  |  score=Final_Score  |  0.9% degen  |  2.0% NaN
+  task counts: {'M1': 840, 'M3': 120, 'M4': 120, 'M5': 840}
+ArXiv:  1,080 rows  |  54 variants  |  20 (split,sample)  |  score=Final_Score  |  0.0% degen  |  0.3% NaN
+  task counts: {'M1': 480, 'M3': 120, 'M5': 480}
+Electronics:  9,600 rows  |  96 variants  |  100 (split,sample)  |  score=Final_Score  |  0.0% degen  |  0.0% NaN
+  task counts: {'M1': 4200, 'M3': 600, 'M4': 600, 'M5': 4200}
+Toys:  9,600 rows  |  96 variants  |  100 (split,sample)  |  score=Final_Score  |  0.3% degen  |  0.3% NaN
+  task counts: {'M1': 4200, 'M3': 600, 'M4': 600, 'M5': 4200}
+
+═════════════════  DATA PREP  (zero threshold = 95%)  ══════════════════
+  History: 4 task types | 15 kept | 0 all-NaN | 21 >=95% zero excluded
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M4', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M4', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M4', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M4', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12b'}
+  Amazon: 4 task types | 73 kept | 0 all-NaN | 23 >=95% zero excluded
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N9', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N9', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N9', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N9', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M4', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E10a', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E10a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E11c', 'Text_Idx': 'T12b'}
+  ArXiv: 3 task types | 48 kept | 0 all-NaN | 6 >=95% zero excluded
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12b'}
+  Electronics: 4 task types | 82 kept | 0 all-NaN | 14 >=95% zero excluded
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N8', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N8', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M4', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E10a', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+  Toys: 4 task types | 68 kept | 0 all-NaN | 28 >=95% zero excluded
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M3', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M4', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N8', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12a'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N9', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+
+  ArXiv clean (excluding {'M2', 'M6'}):
+  ArXiv [excl {'M2', 'M6'}]: 3 task types | 48 kept | 0 all-NaN | 6 >=95% zero excluded
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11a', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M1', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12e'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E10c', 'Text_Idx': 'T12b'}
+    ZERO    : {'Task_Idx': 'M5', 'Node_Idx': 'N7', 'Edge_Idx': 'E11b', 'Text_Idx': 'T12b'}
+
+════════  EXPERIMENT 1 — RELIABILITY (train tree vs test tree)  ════════
+
+  ── History ──
+  tree_train: R²=0.5192  depth=2  leaves=4  n=15
+  tree_test:  R²=0.3607  depth=2  leaves=4
+  spearman ρ (train-pred vs test-pred): +0.3616  p=1.85e-01
+  band_accuracy : 0.4667
+  TED (agg tree_train vs tree_test): raw=3  nodes=(7+7=14)  norm=0.2143
+  norm_TED (per-sample mean ± std, n=100 pairs): 0.2764 ± 0.1663
+
+  Feature importances (train | test | Δ):
+  Axis                    train     test        Δ
+  ────────────────────────────────────────────
+  Edge_Idx               0.7897   0.0000  -0.7897
+  Text_Idx               0.2103   0.0001  -0.2102
+  Node_Idx               0.0000   0.0000  +0.0000
+  Task_Idx               0.0000   0.9999  +0.9999
+
+  ── Amazon ──
+  tree_train: R²=0.5783  depth=8  leaves=19  n=73
+  tree_test:  R²=0.4841  depth=6  leaves=18
+  spearman ρ (train-pred vs test-pred): +0.5767  p=9.28e-08
+  band_accuracy : 0.5342
+  TED (agg tree_train vs tree_test): raw=27  nodes=(37+35=72)  norm=0.3750
+  norm_TED (per-sample mean ± std, n=100 pairs): 0.5014 ± 0.0910
+
+  Feature importances (train | test | Δ):
+  Axis                    train     test        Δ
+  ────────────────────────────────────────────
+  Edge_Idx               0.3422   0.0947  -0.2475
+  Task_Idx               0.2897   0.2162  -0.0734
+  Node_Idx               0.2565   0.5174  +0.2609
+  Text_Idx               0.1116   0.1717  +0.0600
+
+  ── ArXiv ──
+  tree_train: R²=0.9923  depth=5  leaves=14  n=48
+  tree_test:  R²=0.9809  depth=5  leaves=14
+  spearman ρ (train-pred vs test-pred): +0.9341  p=3.36e-22
+  band_accuracy : 1.0000
+  TED (agg tree_train vs tree_test): raw=25  nodes=(27+27=54)  norm=0.4630
+  norm_TED (per-sample mean ± std, n=100 pairs): 0.4223 ± 0.1116
+
+  Feature importances (train | test | Δ):
+  Axis                    train     test        Δ
+  ────────────────────────────────────────────
+  Node_Idx               0.4244   0.3454  -0.0789
+  Task_Idx               0.3046   0.3598  +0.0552
+  Edge_Idx               0.2683   0.2944  +0.0261
+  Text_Idx               0.0028   0.0004  -0.0024
+
+  ── ArXiv (excl {'M2', 'M6'}) ──
+  tree_train: R²=0.9923  depth=5  leaves=14  n=48
+  tree_test:  R²=0.9809  depth=5  leaves=14
+  spearman ρ (train-pred vs test-pred): +0.9341  p=3.36e-22
+  band_accuracy : 1.0000
+  TED (agg tree_train vs tree_test): raw=25  nodes=(27+27=54)  norm=0.4630
+  norm_TED (per-sample mean ± std, n=100 pairs): 0.4223 ± 0.1116
+
+  Feature importances (train | test | Δ):
+  Axis                    train     test        Δ
+  ────────────────────────────────────────────
+  Node_Idx               0.4244   0.3454  -0.0789
+  Task_Idx               0.3046   0.3598  +0.0552
+  Edge_Idx               0.2683   0.2944  +0.0261
+  Text_Idx               0.0028   0.0004  -0.0024
+
+  ── Electronics ──
+  tree_train: R²=0.7056  depth=8  leaves=20  n=82
+  tree_test:  R²=0.8340  depth=8  leaves=24
+  spearman ρ (train-pred vs test-pred): +0.6690  p=6.41e-12
+  band_accuracy : 0.5244
+  TED (agg tree_train vs tree_test): raw=34  nodes=(39+47=86)  norm=0.3953
+  norm_TED (per-sample mean ± std, n=2500 pairs): 0.5922 ± 0.1208
+
+  Feature importances (train | test | Δ):
+  Axis                    train     test        Δ
+  ────────────────────────────────────────────
+  Task_Idx               0.7501   0.7126  -0.0375
+  Edge_Idx               0.1615   0.1610  -0.0006
+  Node_Idx               0.0759   0.0938  +0.0179
+  Text_Idx               0.0125   0.0327  +0.0202
+
+  ── Toys ──
+  tree_train: R²=0.3340  depth=8  leaves=15  n=68
+  tree_test:  R²=0.3518  depth=8  leaves=17
+  spearman ρ (train-pred vs test-pred): +0.6703  p=4.04e-10
+  band_accuracy : 0.5882
+  TED (agg tree_train vs tree_test): raw=33  nodes=(29+33=62)  norm=0.5323
+  norm_TED (per-sample mean ± std, n=2500 pairs): 0.5498 ± 0.1265
+
+  Feature importances (train | test | Δ):
+  Axis                    train     test        Δ
+  ────────────────────────────────────────────
+  Task_Idx               0.9821   0.9943  +0.0122
+  Node_Idx               0.0100   0.0035  -0.0065
+  Edge_Idx               0.0049   0.0014  -0.0035
+  Text_Idx               0.0030   0.0008  -0.0022
+
+═══  EXPERIMENT 2 — STRATEGY 1 VALIDATION (tree_train → test_mean)  ════
+
+  ── History ──
+  spearman ρ   : +0.3977  p=1.42e-01
+  band_accuracy: 0.6000
+  n_variants   : 15
+
+  Per Task_Idx (n ≥ 5 required, flagged otherwise):
+    M1    n=  8  ρ=+0.726  p=4.15e-02
+    M3    n= 2  (insufficient, need ≥5)
+    M4    n= 2  (insufficient, need ≥5)
+    M5    n= 3  (insufficient, need ≥5)
+
+  History M4 inspection:
+  M4 subset: 2 variants
+  (too few M4 variants for sub-tree)
+
+  ── Amazon ──
+  spearman ρ   : +0.5542  p=3.64e-07
+  band_accuracy: 0.4521
+  n_variants   : 73
+
+  Per Task_Idx (n ≥ 5 required, flagged otherwise):
+    M1    n= 31  ρ=+0.377  p=3.65e-02
+    M3    n= 3  (insufficient, need ≥5)
+    M4    n=  5  ρ=+1.000  p=1.40e-24
+    M5    n= 34  ρ=+0.327  p=5.94e-02
+
+  Amazon M4 inspection:
+  M4 subset: 5 variants
+  Spearman ρ (full tree preds on M4 test_mean): +1.000  p=1.40e-24
+  M4-only tree (depth≤4, n=5) feature importances:
+    Task_Idx              0.0000
+    Node_Idx              0.0000
+    Edge_Idx              0.0000
+    Text_Idx              0.0000
+  Top splits (up to depth 2):
+
+  ── ArXiv ──
+  spearman ρ   : +0.9106  p=2.86e-19
+  band_accuracy: 0.7708
+  n_variants   : 48
+
+  Per Task_Idx (n ≥ 5 required, flagged otherwise):
+    M1    n= 20  ρ=+0.883  p=2.59e-07
+    M3    n=  6  ρ=+0.933  p=6.53e-03
+    M5    n= 22  ρ=+0.819  p=3.18e-06
+
+  ── ArXiv (excl {'M2', 'M6'}) ──
+  spearman ρ   : +0.9106  p=2.86e-19
+  band_accuracy: 0.7708
+  n_variants   : 48
+
+  Per Task_Idx (n ≥ 5 required, flagged otherwise):
+    M1    n= 20  ρ=+0.883  p=2.59e-07
+    M3    n=  6  ρ=+0.933  p=6.53e-03
+    M5    n= 22  ρ=+0.819  p=3.18e-06
+
+  ── Electronics ──
+  spearman ρ   : +0.6665  p=8.21e-12
+  band_accuracy: 0.5000
+  n_variants   : 82
+
+  Per Task_Idx (n ≥ 5 required, flagged otherwise):
+    M1    n= 38  ρ=+0.840  p=4.50e-11
+    M3    n= 3  (insufficient, need ≥5)
+    M4    n=  5  ρ=+nan  p=nan
+    M5    n= 36  ρ=+0.193  p=2.60e-01
+
+  Electronics M4 inspection:
+  M4 subset: 5 variants
+  Spearman ρ (full tree preds on M4 test_mean): +nan  p=nan
+  M4-only tree (depth≤4, n=5) feature importances:
+    Task_Idx              0.0000
+    Node_Idx              0.0000
+    Edge_Idx              0.0000
+    Text_Idx              0.0000
+  Top splits (up to depth 2):
+
+  ── Toys ──
+  spearman ρ   : +0.4565  p=9.13e-05
+  band_accuracy: 0.5000
+  n_variants   : 68
+
+  Per Task_Idx (n ≥ 5 required, flagged otherwise):
+    M1    n= 38  ρ=+0.650  p=1.01e-05
+    M3    n=  5  ρ=+nan  p=nan
+    M4    n=  5  ρ=+nan  p=nan
+    M5    n= 20  ρ=+0.308  p=1.86e-01
+
+  Toys M4 inspection:
+  M4 subset: 5 variants
+  Spearman ρ (full tree preds on M4 test_mean): +nan  p=nan
+  M4-only tree (depth≤4, n=5) feature importances:
+    Task_Idx              0.0000
+    Node_Idx              0.0000
+    Edge_Idx              0.0000
+    Text_Idx              0.0000
+  Top splits (up to depth 2):
+
+══════  EXPERIMENT 3 — CROSS-DATASET GENERALISATION (5×5 tables)  ══════
+
+  Table A (5×5) — ArXiv M2/M6 INCLUDED (standard summaries)
+                               History                Amazon                 ArXiv           Electronics                  Toys
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  History         ←ρ=+0.398 p=1.42e-01   ρ=-0.081 p=4.95e-01   ρ=-0.055 p=7.09e-01   ρ=-0.117 p=2.95e-01   ρ=+0.015 p=9.04e-01
+  Amazon           ρ=+0.205 p=4.63e-01  ←ρ=+0.554 p=0.00e+00   ρ=-0.241 p=9.90e-02   ρ=+0.140 p=2.10e-01   ρ=+0.431 p=2.00e-04
+  ArXiv            ρ=-0.182 p=5.16e-01   ρ=-0.210 p=7.42e-02  ←ρ=+0.911 p=0.00e+00   ρ=+0.300 p=6.10e-03   ρ=-0.403 p=7.00e-04
+  Electronics      ρ=+0.252 p=3.66e-01   ρ=+0.245 p=3.68e-02   ρ=+0.558 p=0.00e+00  ←ρ=+0.666 p=0.00e+00   ρ=+0.122 p=3.22e-01
+  Toys             ρ=+0.316 p=2.52e-01   ρ=-0.015 p=8.98e-01   ρ=-0.371 p=9.40e-03   ρ=+0.008 p=9.40e-01  ←ρ=+0.457 p=1.00e-04
+
+  Table B (5×5) — ArXiv M2/M6 EXCLUDED symmetrically (tree source and test target)
+                               History                Amazon                 ArXiv           Electronics                  Toys
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  History         ←ρ=+0.398 p=1.42e-01   ρ=-0.081 p=4.95e-01   ρ=-0.055 p=7.09e-01   ρ=-0.117 p=2.95e-01   ρ=+0.015 p=9.04e-01
+  Amazon           ρ=+0.205 p=4.63e-01  ←ρ=+0.554 p=0.00e+00   ρ=-0.241 p=9.90e-02   ρ=+0.140 p=2.10e-01   ρ=+0.431 p=2.00e-04
+  ArXiv            ρ=-0.182 p=5.16e-01   ρ=-0.210 p=7.42e-02  ←ρ=+0.911 p=0.00e+00   ρ=+0.300 p=6.10e-03   ρ=-0.403 p=7.00e-04
+  Electronics      ρ=+0.252 p=3.66e-01   ρ=+0.245 p=3.68e-02   ρ=+0.558 p=0.00e+00  ←ρ=+0.666 p=0.00e+00   ρ=+0.122 p=3.22e-01
+  Toys             ρ=+0.316 p=2.52e-01   ρ=-0.015 p=8.98e-01   ρ=-0.371 p=9.40e-03   ρ=+0.008 p=9.40e-01  ←ρ=+0.457 p=1.00e-04
+
+  Edit Distance Table A (5×5) — normalized TED (all off-diagonal; * = p<0.05)
+                           History            Amazon             ArXiv       Electronics              Toys
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────
+  History                        —            0.6507            0.6329            0.7126            0.6941
+  Amazon                    0.6507                 —            0.5251            0.5582           *0.5492
+  ArXiv                     0.6329            0.5251                 —           *0.6116           *0.6513
+  Electronics               0.7126           *0.5582           *0.6116                 —            0.5789
+  Toys                      0.6941            0.5492           *0.6513            0.5789                 —
+
+  Edit Distance Table B (5×5) — normalized TED (all off-diagonal; * = p<0.05)
+                           History            Amazon             ArXiv       Electronics              Toys
+  ────────────────────────────────────────────────────────────────────────────────────────────────────────
+  History                        —            0.6507            0.6329            0.7126            0.6941
+  Amazon                    0.6507                 —            0.5251            0.5582           *0.5492
+  ArXiv                     0.6329            0.5251                 —           *0.6116           *0.6513
+  Electronics               0.7126           *0.5582           *0.6116                 —            0.5789
+  Toys                      0.6941            0.5492           *0.6513            0.5789                 —
+  ArXiv→History [A (incl)]:  ρ=-0.1820  p=5.16e-01  normTED=0.6329
+  ArXiv→History [B (excl)]:  ρ=-0.1820  p=5.16e-01  normTED=0.6329
+  Amazon→ArXiv [A (incl)]:  ρ=-0.2409  p=9.90e-02  normTED=0.5251
+  Amazon→ArXiv [B (excl)]:  ρ=-0.2409  p=9.90e-02  normTED=0.5251
+
+  Saved: cross_dataset_3x3_{with,clean}_{rho,p,ted}.csv → output/analysis
+
+═════════════════════════════  TREE PNGs  ══════════════════════════════
+
+  Saved → output/analysis/decision_tree_history_combined.png
+  output/analysis/decision_tree_history_combined.png
+
+  Saved → output/analysis/decision_tree_amazon_combined.png
+  output/analysis/decision_tree_amazon_combined.png
+
+  Saved → output/analysis/decision_tree_arxiv_combined.png
+  output/analysis/decision_tree_arxiv_combined.png
+
+  Saved → output/analysis/decision_tree_arxiv_clean_combined.png
+  output/analysis/decision_tree_arxiv_clean_combined.png
+
+  Saved → output/analysis/decision_tree_electronics_combined.png
+  output/analysis/decision_tree_electronics_combined.png
+
+  Saved → output/analysis/decision_tree_toys_combined.png
+  output/analysis/decision_tree_toys_combined.png
+
+════════════════════════════════  DONE  ════════════════════════════════
+  Output: output/analysis

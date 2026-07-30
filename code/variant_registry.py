@@ -49,19 +49,21 @@ class VariantRegistry:
             text_fidelities = ['T12a', 'T12b', 'T12e']
         
         variants_dict = self.config.get('variants', {})
-        
-        for M in ['M1', 'M2', 'M3', 'M4', 'M5', 'M6']:
+
+        # M5/M6 are derived post-hoc from M1/M2 runs — not enumerated here.
+        # Their rows are emitted as side-effects inside _run_one (experiment_runner.py).
+        for M in ['M1', 'M2', 'M3', 'M4']:
             if M not in variants_dict:
                 continue
-            
+
             for ne_combo in variants_dict[M]:
                 N = ne_combo['N']
                 E = ne_combo['E']
-                
+
                 # Validate this (M, N, E) combination
                 if not self._is_valid_combination(M, N, E):
                     continue
-                
+
                 # Enumerate text fidelities
                 for T in text_fidelities:
                     yield {'M': M, 'N': N, 'E': E, 'T': T}
@@ -142,10 +144,9 @@ class VariantRegistry:
         """
         counts = {}
         variants_dict = self.config.get('variants', {})
-        
-        for M in ['M1', 'M2', 'M3', 'M4', 'M5', 'M6']:
+
+        for M in ['M1', 'M2', 'M3', 'M4']:
             if M in variants_dict:
-                # Count valid (N, E) combinations
                 valid_count = sum(
                     1 for ne_combo in variants_dict[M]
                     if self._is_valid_combination(M, ne_combo['N'], ne_combo['E'])
@@ -153,7 +154,11 @@ class VariantRegistry:
                 counts[M] = valid_count
             else:
                 counts[M] = 0
-        
+
+        # M5/M6 combos mirror M1/M2 exactly (derived metrics, not independent runs)
+        counts['M5'] = counts['M1']
+        counts['M6'] = counts['M2']
+
         return counts
     
     def get_total_variant_count(self, text_fidelities: List[str] = None) -> int:

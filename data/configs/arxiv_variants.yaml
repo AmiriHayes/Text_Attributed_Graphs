@@ -1,0 +1,279 @@
+dataset: arxiv
+
+# ─────────────────────────────────────────────────────────────────────────
+# DATASET CONTEXT
+# ─────────────────────────────────────────────────────────────────────────
+# Source: Cornell ArXiv metadata (Kaggle, Cornell-University/arxiv), 100k
+# papers, 50/50 train/test split.
+#
+# primary_id = paper id (e.g. "0704.0001"). secondary_id = list of
+# "First|Last" author strings (N8). aggregate_id = top-level category
+# extracted from the 'categories' field (e.g. "cond-mat.str-el cond-mat.stat-mech"
+# -> "cond-mat") (N9). text_fidelity_b = title only. text_fidelity_a =
+# title + abstract. structural_edges = None (no pre-given relation; the
+# bipartite paper-author graph IS the natural pre-given relation, used as
+# E10c — see E10c below).
+#
+# By construction (same as History): categorical_label = aggregate_id
+# (top-level category). So M1 = "classify which top-level ArXiv category
+# (cs, math, physics, cond-mat, hep-ph, astro-ph, ...) this paper belongs
+# to" — and E10a/E11c are a direct C4 leak for M1, same reasoning as History.
+#
+# OPEN ITEM: exact category list/counts for this 100k sample not yet
+# confirmed — run arxiv_train['aggregate_id'].value_counts() and .nunique()
+# to get the class list/balance for M1. Typical ArXiv top-level prefixes:
+# cs, math, physics, cond-mat, hep-ph, hep-th, astro-ph, gr-qc, quant-ph,
+# nucl-th, math-ph, stat, q-bio, q-fin, eess, econ (~15-20 expected).
+#
+# M2 EXCLUDED: abstract character length is orthogonal to BERT sentence embeddings
+# (all-zero Final_Score across all 16 variants tested). No suitable scalar label
+# available without re-downloading source data (citations not in schema).
+# M4 EXCLUDED: cascades from M2 (|abstract_length_i - abstract_length_j| requires
+# M2 label; excluded with M2).
+# M6 EXCLUDED: derived from M2 training rows; excluded with M2.
+#
+# M1+N8 is INCLUDED (per user decision): label = mode(categorical_label)
+# across an author's papers ("author's dominant category"), computed via
+# the same aggregation pattern used for author_embeddings.npy.
+
+# ─────────────────────────────────────────────────────────────────────────
+# AXIS DEFINITIONS
+# ─────────────────────────────────────────────────────────────────────────
+axes:
+  M:
+    M1:
+      name: node_categorical
+      label: categorical_label
+      concrete_meaning: >
+        For N7: classify which top-level ArXiv category a paper belongs to
+        (e.g. paper "Sparsity-certifying Graph Decompositions" -> "math").
+        For N8: classify an author's DOMINANT category — mode of
+        categorical_label across all their papers in the sample.
+    M2:
+      name: node_scalar
+      label: scalar_label
+      concrete_meaning: >
+        Predict a node's centrality (composite of degree/PageRank/clustering
+        coefficient) WITHIN THE GRAPH CONSTRUCTED FOR THIS (N,E) VARIANT —
+        i.e. the label depends on which E was used to build the graph, same
+        as M5/M6. For N7: paper centrality. For N8: mean centrality of an
+        author's papers. For N9: mean centrality of papers in a category.
+    M3:
+      name: edge_categorical
+      label: derived_same_category
+      concrete_meaning: >
+        For a connected pair of same-type nodes, predict whether they share
+        a top-level category (N7: same paper-category; N8: same author
+        dominant-category). Requires N-N edges — see structural_notes on
+        why E10c is excluded here.
+    M4:
+      name: edge_scalar
+      label: derived_centrality_diff
+      concrete_meaning: >
+        For a connected pair, predict |centrality_i - centrality_j| using
+        the M2 centrality values computed on this variant's graph.
+    M5:
+      name: global_categorical
+      label: derived_entropy_binary
+      concrete_meaning: >
+        For the constructed 1k-node subgraph, predict whether its graph
+        entropy exceeds 0.5 (binary).
+    M6:
+      name: global_scalar
+      label: derived_entropy_value
+      concrete_meaning: >
+        For the constructed 1k-node subgraph, predict its exact graph
+        entropy value.
+
+  N:
+    N7:
+      name: primary_entity
+      concrete_meaning: >
+        Each N7 node is one paper (primary_id). Text features from
+        text_fidelity_a/b (title [+ abstract]). ~50k papers per split.
+    N8:
+      name: secondary_entity
+      concrete_meaning: >
+        Each N8 node is one author. Text features from author_embeddings.npy
+        (mean-pooled T12b title embeddings across that author's papers).
+        M1/M2 labels for N8 are aggregated (mode / mean) across the author's
+        papers.
+    N9:
+      name: aggregate_entity
+      concrete_meaning: >
+        Each N9 node is one top-level ArXiv category (e.g. "cs", "math",
+        "cond-mat"). Text features from category_embeddings.npy (mean-pooled
+        T12b title embeddings of all papers in that category).
+
+  E:
+    E10a:
+      name: categorical_gt
+      concrete_meaning: >
+        Connect two N7 (or two N8) nodes if they share the same top-level
+        category (for N8: same dominant category). SEVERE C4 LEAK for M1
+        (see remove_list) since categorical_label == encode(aggregate_id),
+        same reasoning as History. Undefined for N9 (see structural_notes).
+    E10b:
+      name: scalar_gt
+      concrete_meaning: >
+        Weighted N-N edges from real authorship data, independent of
+        category. For N7: weight = number of shared authors between two
+        papers. For N8: weight = number of papers co-authored by two
+        authors. For N9: weight = number of cross-category shared-authorship
+        links between two categories (aggregated from the N7-level
+        definition — requires aggregation in edge_factory, same pattern as
+        History's N9+E10c).
+    E10c:
+      name: bipartite_participation
+      concrete_meaning: >
+        "The dataset's pre-given relational structure, used directly as
+        binary edges" — for ArXiv this is the natural paper-author bipartite
+        graph (author wrote paper). For N9, the analogous bipartite relation
+        is category-author (author has a paper in this category, derived
+        transitively). BIPARTITE, NOT N-N: valid for node-level (M1/M2) and
+        global (M5/M6) tasks where the GNN operates on the heterogeneous
+        bipartite graph, but EXCLUDED for M3/M4 (edge-pair tasks need N-N
+        edges of the node type being predicted on — see structural_notes).
+    E11a:
+      name: semantic_similarity
+      concrete_meaning: >
+        Cosine similarity (thresholded) on T-fidelity embeddings:
+        article_embeddings(.npy)/_contextual for N7, author_embeddings.npy
+        for N8, category_embeddings.npy for N9.
+    E11b:
+      name: structural_similarity
+      concrete_meaning: >
+        Edges based on degree/centrality similarity between nodes of the
+        same type.
+    E11c:
+      name: functional_similarity
+      concrete_meaning: >
+        Similarity-form edges connecting N7 (or N8) nodes that share a
+        top-level category (N7) / dominant category (N8) — same underlying
+        relation as E10a, framed as similarity rather than GT-labeled. Same
+        C4 issue as E10a for M1 — see remove_list. Undefined for N9 (see
+        structural_notes).
+
+  T:
+    T12a:
+      name: contextual
+      concrete_meaning: >
+        text_fidelity_a = title + abstract, e.g. "Sparsity-certifying Graph
+        Decompositions In this paper we describe a new..."
+    T12b:
+      name: standard
+      concrete_meaning: >
+        text_fidelity_b = title only, e.g. "Sparsity-certifying Graph
+        Decompositions" — the entity's own name, nothing else.
+    T12e:
+      name: baseline
+      concrete_meaning: "Empty string '' — not stored, used directly downstream."
+
+# ─────────────────────────────────────────────────────────────────────────
+# STRUCTURAL NOTES (constraints beyond C1-C4, specific to this dataset)
+# ─────────────────────────────────────────────────────────────────────────
+structural_notes:
+  - "C4 boundary (same principle as History): C4 excludes edge constructions
+     WE DERIVE that are definitionally/tautologically equivalent to the
+     prediction target (E10a/E11c 'connect same-category nodes' when
+     predicting category). It does NOT exclude E10b/E10c, which are derived
+     from authorship data that may CORRELATE with category but is not
+     definitionally equal to it."
+  - "E10a and E11c are defined only for N7/N8 (where 'same category' /
+     'same dominant category' is meaningful). Undefined for N9 — an N9 node
+     IS a category, so 'same category as itself' has no second axis to
+     compare against (same reasoning as History)."
+  - "E10c is BIPARTITE (paper-author for N7/N8; category-author for N9), not
+     N-N. M3/M4 require N-N edges of the node type being predicted on (the
+     label is about 'this edge's endpoints' of type N) — E10c produces no
+     such edges, so E10c is EXCLUDED from M3/M4 for ALL N. This differs from
+     History, where E10c (redefined as the neighbour list) IS N-N (book-book)
+     and therefore valid for M3/M4 there."
+  - "M1+N9 excluded entirely — tautological/trivial, same as History."
+  - "M1+N8 (author's dominant category via mode aggregation) is included
+     per project decision, mirroring the Amazon pattern of a secondary-entity
+     (N8=user) classification task."
+
+# ─────────────────────────────────────────────────────────────────────────
+# OMEGA* — valid (N, E) combinations per M
+# ─────────────────────────────────────────────────────────────────────────
+variants:
+  M1:  # node categorical — N7, N8. E10a/E11c excluded (C4, categorical_label == encode(aggregate_id))
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+    - {N: N8, E: E10b}
+    - {N: N8, E: E10c}
+    - {N: N8, E: E11a}
+    - {N: N8, E: E11b}
+
+  # M2 excluded — see dataset context above.
+
+  M3:  # edge categorical — N7, N8 only. GT edges only (C2). E10a excluded (C4). E10c excluded (bipartite, no N-N edges)
+    - {N: N7, E: E10b}
+    - {N: N8, E: E10b}
+
+  # M4 excluded — cascades from M2 exclusion.
+
+  M5:  # global categorical — derived from M1 (same N,E space)
+    - {N: N7, E: E10a}
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+    - {N: N7, E: E11c}
+    - {N: N8, E: E10a}
+    - {N: N8, E: E10b}
+    - {N: N8, E: E10c}
+    - {N: N8, E: E11a}
+    - {N: N8, E: E11b}
+    - {N: N8, E: E11c}
+    - {N: N9, E: E10b}
+    - {N: N9, E: E10c}
+    - {N: N9, E: E11a}
+    - {N: N9, E: E11b}
+
+  # M6 excluded — derived from M2; excluded with M2.
+
+# ─────────────────────────────────────────────────────────────────────────
+# REMOVE LIST — applied during enumeration, listed here for documentation
+# ─────────────────────────────────────────────────────────────────────────
+remove_list:
+  - rule: "(M1, N7, E10a), (M1, N7, E11c), (M1, N8, E10a), (M1, N8, E11c)"
+    reason: >
+      C4, DIRECT LEAK — categorical_label is defined as aggregate_id
+      (N7) / mode(aggregate_id) over an author's papers (N8). E10a/E11c
+      connect nodes sharing (dominant) category, tautological with
+      predicting it.
+  - rule: "(M1, N9, *)"
+    reason: "Tautological/trivial at category-node granularity — same as History."
+  - rule: "(*, N9, E10a), (*, N9, E11c)"
+    reason: "Structural — 'same/shared category' undefined when nodes ARE categories — see structural_notes."
+  - rule: "(M3, *, E10a), (M4, *, E10a)"
+    reason: "C4 (M3) — E10a directly encodes the M3 same-category label; (M4) E10a binary GT edges have no natural scalar label."
+  - rule: "(M3, *, E10c), (M4, *, E10c)"
+    reason: "Structural — E10c is bipartite (paper-author), produces no N-N edges for an edge-pair label of type N — see structural_notes."
+  - rule: "(M3, *, E11*), (M4, *, E11*)"
+    reason: "C2 — similarity edges carry no edge-level supervision signal."
+  - rule: "(M3, N9, *), (M4, N9, *)"
+    reason: "Edge-pair tasks between category-nodes are undefined (no natural N9-N9 'same category' or 'centrality diff' framing distinct from M2/M5/M6)."
+
+# ─────────────────────────────────────────────────────────────────────────
+# SUMMARY
+# ─────────────────────────────────────────────────────────────────────────
+summary:
+  M1_combos: 8
+  M2_combos: 0   # excluded — no suitable scalar label
+  M3_combos: 2
+  M4_combos: 0   # excluded — cascades from M2
+  # M5 derived post-hoc from M1 (TVD gap). M6 excluded with M2.
+  M5_combos: 8   # mirrors M1
+  M6_combos: 0   # excluded with M2
+  text_levels: 3
+  # Independent training runs (M1 + M3 only):
+  runnable_MNE_combos: 10
+  runnable_variants: 30
+  # Total output rows including derived M5:
+  total_MNE_combos: 18
+  total_variants: 54

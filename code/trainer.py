@@ -135,21 +135,31 @@ class GNNTrainer:
             true_cls = labels[valid].numpy()
             acc = float((pred_cls == true_cls).mean())
             f1 = float(f1_score(true_cls, pred_cls, average='binary', zero_division=0))
-            return {'accuracy': acc, 'f1': f1}
+            # Soft probs + one-hot labels for pseudo_R2 (Step 1 scoring)
+            probs = torch.softmax(out[valid], dim=-1).cpu().numpy()
+            one_hot = np.eye(2)[true_cls]
+            return {'accuracy': acc, 'f1': f1, '_raw_pred': probs, '_raw_targ': one_hot}
 
         if self.task_type == 'edge_scalar':
             target_ei = data.target_edge_index[:, mask]
             out = self.model(data.x, data.edge_index, target_edge_index=target_ei)
             pred = out.cpu().numpy().flatten()
             targ = data.y[mask].cpu().numpy().flatten()
-            return self._scalar_metrics(pred, targ)
+            metrics = self._scalar_metrics(pred, targ)
+            metrics['_raw_pred'] = pred
+            metrics['_raw_targ'] = targ
+            return metrics
 
         out = self.model(data.x, data.edge_index)
 
         if self.task_type == 'scalar':
             pred = out[mask].cpu().numpy().flatten()
             targ = data.y[mask].cpu().numpy().flatten()
-            return self._scalar_metrics(pred, targ)
+            metrics = self._scalar_metrics(pred, targ)
+            # Raw arrays for M6 aggregate-gap derivation (ignored by build_result_row)
+            metrics['_raw_pred'] = pred
+            metrics['_raw_targ'] = targ
+            return metrics
 
         # categorical (M1)
         probs = out.exp().cpu().numpy()
@@ -171,7 +181,9 @@ class GNNTrainer:
         norm_p = np.linalg.norm(pred, axis=1)
         norm_t = np.linalg.norm(targ, axis=1)
         cosines = dot / (norm_p * norm_t + 1e-12)
-        return {'kl': kl, 'top1': top1, 'top3': top3, 'cosine': float(np.nanmean(cosines))}
+        # Raw arrays for M5 aggregate-gap derivation (ignored by build_result_row)
+        return {'kl': kl, 'top1': top1, 'top3': top3, 'cosine': float(np.nanmean(cosines)),
+                '_raw_pred': pred, '_raw_targ': targ}
 
     def _scalar_metrics(self, pred: np.ndarray, targ: np.ndarray) -> Dict[str, float]:
         mae = float(np.mean(np.abs(pred - targ)))
@@ -370,6 +382,14 @@ RESULT_COLUMNS = [
     'MAE', 'MSE', 'R2',
     'Primary_Metric', 'Primary_Value',
     'Performance_Band',
+    'S_GNN_step1', 'S_MLP_step1', 'Final_Score',
+    # Three scoring views saved simultaneously for clean ablation comparison:
+    #   raw_gnn_score   — S_GNN_step1 directly (no MLP comparison, no clamp)
+    #   unclamped_score — (S_GNN-S_MLP)/(1-S_MLP) or Δ/(1+|Δ|), signed, no max(0)
+    #   Final_Score     — clamped/clipped version already above
+    'raw_gnn_score',
+    'unclamped_score',
+    'scoring_formula',
     'normalized_score',
     'number_of_nodes',
     'avg_text_length',
@@ -378,6 +398,7 @@ RESULT_COLUMNS = [
     'output_dimension',
     'run_split',
     'degenerate',
+    'nan_reason',
 ]
 
 
@@ -466,6 +487,10 @@ def build_result_row(
     run_split: str,
     sample_idx: int,
     output_dimension: int,
+    s_gnn_step1: float = float('nan'),
+    s_mlp_step1: float = float('nan'),
+    final_score: float = float('nan'),
+    r2_for_row: float = float('nan'),
 ) -> Dict[str, Any]:
     """
     Wrap training output into the full construction_performance_table schema.
@@ -499,25 +524,26 @@ def build_result_row(
     mse    = test_metrics.get('mse',      nan)
     r2     = test_metrics.get('r2',       nan)
 
-    # --- Primary metric and normalized score ---
-    if task_type == 'categorical':
-        primary_metric = 'accuracy'
-        primary_value = top1
-        normalized_score = top1 * 100 if not math.isnan(top1) else nan
-    elif task_type == 'edge_categorical':
-        primary_metric = 'accuracy'
-        primary_value = acc
-        normalized_score = acc * 100 if not math.isnan(acc) else nan
-    else:
-        # scalar, edge_scalar
-        primary_metric = 'r2'
-        primary_value = r2
-        if math.isnan(r2):
-            normalized_score = nan
-        else:
-            # Map R2 from [-1, 1] → [0, 100]. R2=-1 (twice mean-prediction error)
-            # is the floor; anything below is clamped. R2=0 (mean prediction) → 50.
-            normalized_score = (max(-1.0, min(1.0, r2)) + 1.0) / 2.0 * 100
+    # --- R2 column: use pseudo_R2 for categorical tasks if provided ---
+    # For M1/M3 categorical tasks, r2_for_row is the pseudo_R2 (McFadden-style,
+    # computed via compute_step1_score in _run_one). For M2/M4 scalar tasks
+    # r2_for_row == r2. Stored here so the R2 column is always populated.
+    if task_type in ('categorical', 'edge_categorical') and not math.isnan(r2_for_row):
+        r2 = r2_for_row
+
+    # --- Primary metric and normalized score (two-step scoring framework) ---
+    # DEPRECATED — old single-metric normalization:
+    #   categorical: normalized_score = top1 * 100
+    #   edge_categorical: normalized_score = acc * 100
+    #   scalar/edge_scalar: normalized_score = (clamp(R2,-1,1)+1)/2*100
+    #       (the "(-1 floor, 0=mean-prediction → 50)" linear scheme)
+    # Replaced by two-step scoring: Step 1 = theoretical normalization
+    # (pseudo_R2 / max(0,R2) / TVD-relative / Gap-relative), Step 2 = graph-lift
+    # above feature-only MLP baseline. Final_Score drives normalized_score and
+    # Primary_Value. See compute_step1_score / compute_final_score in this file.
+    primary_metric = 'final_score'
+    primary_value  = final_score
+    normalized_score = final_score * 100 if not math.isnan(final_score) else nan
 
     # --- Text stats ---
     avg_text_length, text_vocab_entropy = _text_stats(df, T)
@@ -527,6 +553,26 @@ def build_result_row(
 
     # --- Degenerate flag ---
     degenerate = trainer.is_degenerate(window=20, threshold=0.01)
+    # ss_tot < 1e-6 guard in _scalar_metrics returns r2=NaN when label variance
+    # collapses — training-loss check alone misses this, so propagate here.
+    if task_type in ('scalar', 'edge_scalar') and math.isnan(r2):
+        degenerate = True
+    # Any NaN final_score is a degenerate outcome regardless of task type.
+    if math.isnan(final_score):
+        degenerate = True
+
+    # unclamped_score: signed delta with no max(0,...) applied.
+    # M2 uses algebraic sigmoid Δ/(1+|Δ|) to avoid denominator explosion.
+    # All others use (S_GNN-S_MLP)/(1-S_MLP) raw.
+    if not math.isnan(s_gnn_step1) and not math.isnan(s_mlp_step1):
+        if M in ('M2',):
+            _delta = s_gnn_step1 - s_mlp_step1
+            _unclamped = _delta / (1.0 + abs(_delta))
+        else:
+            _denom = 1.0 - s_mlp_step1
+            _unclamped = (s_gnn_step1 - s_mlp_step1) / _denom if abs(_denom) >= 1e-9 else float('nan')
+    else:
+        _unclamped = float('nan')
 
     row = {
         'Task_Idx': M,
@@ -542,14 +588,20 @@ def build_result_row(
         # Edge-categorical metrics (NaN for others)
         'Accuracy': acc if task_type == 'edge_categorical' else (top1 if task_type == 'categorical' else nan),
         'F1':       f1  if task_type == 'edge_categorical' else nan,
-        # Scalar metrics (NaN for categorical tasks)
+        # Scalar metrics; R2 = pseudo_R2 for categorical tasks (already overwritten above)
         'MAE': mae if task_type in ('scalar', 'edge_scalar') else nan,
         'MSE': mse if task_type in ('scalar', 'edge_scalar') else nan,
-        'R2':  r2  if task_type in ('scalar', 'edge_scalar') else nan,
+        'R2':  r2,
         # Universal
         'Primary_Metric':       primary_metric,
         'Primary_Value':        primary_value,
-        'Performance_Band':     None,   # Thresholds TBD
+        'Performance_Band':     None,
+        'S_GNN_step1':          s_gnn_step1,
+        'S_MLP_step1':          s_mlp_step1,
+        'Final_Score':          final_score,
+        'raw_gnn_score':        s_gnn_step1,
+        'unclamped_score':      _unclamped,
+        'scoring_formula':      'algebraic_lift' if M in ('M2',) else 'graph_lift',
         'normalized_score':     normalized_score,
         'number_of_nodes':      data.num_nodes,
         'avg_text_length':      avg_text_length,
@@ -558,5 +610,253 @@ def build_result_row(
         'output_dimension':     output_dimension,
         'run_split':            run_split,
         'degenerate':           degenerate,
+        'nan_reason':           '',
     }
     return row
+
+
+# ---------------------------------------------------------------------------
+# M5 / M6 derived-metric helpers
+# ---------------------------------------------------------------------------
+
+def compute_aggregate_gap(test_metrics: Dict, task_type: str) -> float:
+    """Compute Aggregate_Gap from raw test predictions stored in test_metrics.
+
+    M5 (from M1 / categorical):
+        TVD = 0.5 * sum|true_class_fraction[c] - mean_predicted_prob[c]|
+        Uses the soft softmax output already computed for KL/top1, NOT argmax.
+
+    M6 (from M2 / scalar):
+        abs(median(true_labels) - median(predicted_labels)) over test_mask nodes.
+        Median is more robust than mean for skewed scalar labels (e.g. book price, vote counts).
+
+    Returns NaN if _raw_pred/_raw_targ absent (e.g. dense-graph bypass).
+    """
+    pred = test_metrics.get('_raw_pred')
+    targ = test_metrics.get('_raw_targ')
+    if pred is None or targ is None or len(pred) == 0:
+        return float('nan')
+
+    if task_type == 'categorical':
+        # targ: (n_test, n_classes) one-hot; pred: (n_test, n_classes) soft probs
+        true_dist = targ.mean(axis=0)   # empirical class fractions
+        pred_dist = pred.mean(axis=0)   # mean predicted probability per class
+        return float(0.5 * np.sum(np.abs(true_dist - pred_dist)))
+
+    if task_type == 'scalar':
+        # targ/pred: (n_test,) flat arrays
+        # Median is more robust than mean for skewed scalar labels (e.g. price, vote counts).
+        return float(abs(float(np.median(targ)) - float(np.median(pred))))
+
+    return float('nan')
+
+
+# ---------------------------------------------------------------------------
+# Two-step scoring framework
+# ---------------------------------------------------------------------------
+
+def compute_pseudo_r2(test_metrics: Dict) -> float:
+    """McFadden-style pseudo-R² for categorical tasks (M1 / M3).
+
+    pseudo_R2 = 1 - LL_model / LL_null
+      LL_model = sum_test log(p_model(true_class)) — uses soft softmax probs
+      LL_null  = sum_test log(p_null(true_class)) where p_null(c) is the
+                 empirical class frequency WITHIN THIS SAMPLE'S TEST_MASK.
+
+    Captures confidence/calibration via softmax probabilities; a model that
+    confidently predicts the wrong class gets a worse score than one that
+    hedges. Use max(0, pseudo_R2) as the Step 1 score S.
+    """
+    pred = test_metrics.get('_raw_pred')   # (n_test, n_classes) soft probs
+    targ = test_metrics.get('_raw_targ')   # (n_test, n_classes) one-hot
+    if pred is None or targ is None or len(pred) == 0:
+        return float('nan')
+    eps = 1e-12
+    ll_model = float(np.sum(targ * np.log(np.maximum(pred, eps))))
+    p_null   = targ.mean(axis=0)           # empirical class freq in test_mask
+    ll_null  = float(np.sum(targ * np.log(np.maximum(p_null[None, :], eps))))
+    if abs(ll_null) < eps:
+        return float('nan')
+    return float(1.0 - ll_model / ll_null)
+
+
+def compute_step1_score(test_metrics: Dict, task_type: str) -> tuple:
+    """Compute Step 1 (theoretical normalization) score for a GNN or MLP run.
+
+    Returns (s_step1, r2_or_pseudo_r2) where:
+      categorical / edge_categorical: s = max(0, pseudo_R2); r2 = pseudo_R2
+      scalar      / edge_scalar:      s = max(0, R2);        r2 = R2
+    The second return value is what goes in the R2 column.
+    """
+    nan = float('nan')
+    if task_type in ('categorical', 'edge_categorical'):
+        psr2 = compute_pseudo_r2(test_metrics)
+        s = nan if math.isnan(psr2) else max(0.0, psr2)
+        return s, psr2
+    else:
+        r2 = test_metrics.get('r2', nan)
+        s  = nan if math.isnan(r2) else max(0.0, r2)
+        return s, r2
+
+
+def compute_final_score(s_gnn: float, s_mlp: float) -> float:
+    """Step 2 (empirical equalization): graph lift above MLP baseline.
+
+    Final_Score = max(0, (S_GNN - S_MLP) / (1 - S_MLP))
+
+    If S_MLP ≥ 1 (MLP already perfect) or either input is NaN, returns NaN.
+    Applied to M1, M3, M4, M5 only. M2 and M6 use compute_final_score_algebraic.
+    """
+    if math.isnan(s_gnn) or math.isnan(s_mlp):
+        return float('nan')
+    denom = 1.0 - s_mlp
+    if abs(denom) < 1e-9:
+        return float('nan')
+    return float(max(0.0, (s_gnn - s_mlp) / denom))
+
+
+def compute_final_score_algebraic(s_gnn: float, s_mlp: float) -> float:
+    """Algebraic sigmoid lift for M2 and M6.
+
+    score = Δ / (1 + |Δ|)   where Δ = S_GNN - S_MLP
+
+    Range: (-1, 1). Monotone in Δ. Zero crossing at Δ=0 (GNN == MLP).
+    Avoids the (1 - S_MLP) denominator that explodes when MLP accuracy is
+    near 1. Preserves ordinal ranking across the full observed range:
+      Δ=-40 → -0.976,  Δ=-5 → -0.833,  Δ=0 → 0,  Δ=+5 → +0.833.
+    """
+    if math.isnan(s_gnn) or math.isnan(s_mlp):
+        return float('nan')
+    delta = s_gnn - s_mlp
+    return float(delta / (1.0 + abs(delta)))
+
+
+def compute_m5_step1_score(tvd_model: float, data) -> tuple:
+    """Step 1 score for M5 (derived from M1).
+
+    S_M5 = max(0, (TVD_baseline - TVD_model) / TVD_baseline)
+    TVD_baseline = TVD between true test-mask class distribution and true
+                  train-mask class distribution (dummy model predicting
+                  training-set priors).
+
+    Returns (s_step1, tvd_baseline). Returns (NaN, NaN) if baseline ≈ 0.
+    """
+    nan = float('nan')
+    if math.isnan(tvd_model):
+        return nan, nan
+    y          = data.y.cpu().numpy()           # (N, n_classes) one-hot
+    test_mask  = data.test_mask.cpu().numpy()
+    train_mask = data.train_mask.cpu().numpy()
+    test_dist  = y[test_mask].mean(axis=0)      # true class freq in test
+    train_dist = y[train_mask].mean(axis=0)     # training-set class priors
+    tvd_baseline = float(0.5 * np.sum(np.abs(test_dist - train_dist)))
+    # Guard mirrors the ss_tot < 1e-6 pattern in _scalar_metrics: if train and
+    # test class distributions are already nearly identical, the null baseline
+    # is trivially well-calibrated and the relative-improvement denominator is
+    # undefined. Return NaN explicitly so downstream degenerate=True is set with
+    # an interpretable cause ("baseline indistinguishable") rather than a silent
+    # divide-by-zero.
+    if tvd_baseline < 1e-6:
+        return nan, tvd_baseline
+    s = max(0.0, (tvd_baseline - tvd_model) / tvd_baseline)
+    return float(s), tvd_baseline
+
+
+def compute_m6_step1_score(gap_model: float, data) -> tuple:
+    """Step 1 score for M6 (derived from M2).
+
+    S_M6 = max(0, (Gap_baseline - Gap_model) / Gap_baseline)
+    Gap_baseline = |true_test_median - true_train_median| (dummy model
+                  predicting the training-set median).
+
+    Returns (s_step1, gap_baseline). Returns (NaN, NaN) if baseline ≈ 0.
+    """
+    nan = float('nan')
+    if math.isnan(gap_model):
+        return nan, nan
+    y          = data.y.cpu().numpy().flatten()
+    test_mask  = data.test_mask.cpu().numpy()
+    train_mask = data.train_mask.cpu().numpy()
+    test_med   = float(np.median(y[test_mask]))
+    train_med  = float(np.median(y[train_mask]))
+    gap_baseline = float(abs(test_med - train_med))
+    # Guard mirrors the ss_tot < 1e-6 pattern in _scalar_metrics: if train and
+    # test target medians are already nearly identical, the null baseline is
+    # trivially well-calibrated (e.g. ArXiv centrality has uniform distribution
+    # across train/test masks within a sample). Return NaN explicitly so
+    # degenerate=True is set with an interpretable cause rather than a silent
+    # divide-by-zero. Threshold matches ss_tot guard at 1e-6.
+    if gap_baseline < 1e-6:
+        return nan, gap_baseline
+    s = max(0.0, (gap_baseline - gap_model) / gap_baseline)
+    return float(s), gap_baseline
+
+
+def build_derived_global_row(
+    source_variant:   Dict,
+    aggregate_gap:    float,
+    run_split:        str,
+    sample_idx:       int,
+    data,                      # PyG Data object (for num_nodes and masks)
+    df,                        # DataFrame (for text stats)
+    output_dimension: int,
+    s_gnn_step1: float = float('nan'),
+    s_mlp_step1: float = float('nan'),
+    final_score: float = float('nan'),
+) -> Dict:
+    """Build an M5 (from M1) or M6 (from M2) derived result row.
+
+    The row shares (N, E, T, run_split, sample_idx) with the source M1/M2 row.
+    Primary_Value = Final_Score; aggregate_gap stored in R2 column for transparency.
+    """
+    nan   = float('nan')
+    M_src = source_variant['M']
+    assert M_src in ('M1', 'M2'), f"build_derived_global_row: unexpected source task {M_src}"
+    M_der  = 'M5' if M_src == 'M1' else 'M6'
+    t_type = 'global_categorical' if M_src == 'M1' else 'global_scalar'
+
+    avg_text_length, text_vocab_entropy = _text_stats(df, source_variant['T'])
+    normalized_score = final_score * 100 if not math.isnan(final_score) else nan
+
+    # unclamped_score for derived rows — same formula as build_result_row
+    if not math.isnan(s_gnn_step1) and not math.isnan(s_mlp_step1):
+        if M_src == 'M2':   # M6 derived
+            _d = s_gnn_step1 - s_mlp_step1
+            _unc = _d / (1.0 + abs(_d))
+        else:               # M5 derived
+            _den = 1.0 - s_mlp_step1
+            _unc = (s_gnn_step1 - s_mlp_step1) / _den if abs(_den) >= 1e-9 else float('nan')
+    else:
+        _unc = float('nan')
+
+    return {
+        'Task_Idx':              M_der,
+        'Node_Idx':              source_variant['N'],
+        'Edge_Idx':              source_variant['E'],
+        'Text_Idx':              source_variant['T'],
+        'task_type':             t_type,
+        'KL':    nan, 'Top1':  nan, 'Top3':   nan, 'Cosine': nan,
+        'Accuracy': nan, 'F1': nan,
+        'MAE':   nan, 'MSE':   nan,
+        'R2':    aggregate_gap,
+        'Primary_Metric':        'final_score',
+        'Primary_Value':         final_score,
+        'Performance_Band':      None,
+        'S_GNN_step1':           s_gnn_step1,
+        'S_MLP_step1':           s_mlp_step1,
+        'Final_Score':           final_score,
+        'raw_gnn_score':         s_gnn_step1,
+        'unclamped_score':       _unc,
+        'scoring_formula':       'algebraic_lift' if M_src == 'M2' else 'graph_lift',
+        'normalized_score':      normalized_score,
+        'number_of_nodes':       data.num_nodes,
+        'avg_text_length':       avg_text_length,
+        'text_vocab_entropy':    text_vocab_entropy,
+        'label_balance_entropy': nan,
+        'output_dimension':      output_dimension,
+        'run_split':             run_split,
+        'degenerate':            math.isnan(final_score),
+        'nan_reason':            '',
+        'Predicted_Value':       nan,
+        'True_Value':            nan,
+    }

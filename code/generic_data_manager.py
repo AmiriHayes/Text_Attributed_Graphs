@@ -7,7 +7,6 @@ import json
 import yaml
 import numpy as np
 import pandas as pd
-import networkx as nx
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict
 from collections import defaultdict, Counter
@@ -284,25 +283,45 @@ class GenericDataManager(BaseDataManager):
         """Get scalar labels for M2/M4 tasks."""
         if node_type == 'N7':
             # Primary entity scalar labels
-            if self.dataset == 'arxiv':
-                # ArXiv M2: compute centrality from graph (node_list may be passed
-                # in; fall back to unique primary_ids in df)
-                if graph is None:
-                    raise ValueError("Graph required for ArXiv M2 centrality computation")
-                nl = node_list if node_list is not None else list(dict.fromkeys(df['primary_id']))
-                return self._compute_centrality(graph, nl)
-            else:
-                # Amazon/History: use scalar_label column.
-                # Build pid → first scalar mapping to handle Amazon's multiple
-                # reviews per product (node_list contains unique primary_ids).
+            if self.config.get('m2_source') == 'derived_from_text':
+                # Abstract length: len(text_fidelity_a) - len(text_fidelity_b).
+                # External to graph structure — no graph access needed.
                 if node_list is None:
                     node_list = self.get_node_list('N7', df)
-                pid_to_scalar: dict = {}
-                for pid, val in zip(df['primary_id'], df['scalar_label']):
-                    if pid not in pid_to_scalar:
-                        pid_to_scalar[pid] = val
-                labels = np.array([pid_to_scalar.get(pid, np.nan)
-                                   for pid in node_list], dtype=np.float32)
+                pid_to_len: dict = {}
+                for pid, tfa, tfb in zip(df['primary_id'],
+                                         df['text_fidelity_a'],
+                                         df['text_fidelity_b']):
+                    if pid not in pid_to_len:
+                        tfa = tfa if isinstance(tfa, str) else ''
+                        tfb = tfb if isinstance(tfb, str) else ''
+                        pid_to_len[pid] = len(tfa) - len(tfb)
+                labels = np.array([float(pid_to_len.get(pid, 0.0)) for pid in node_list],
+                                  dtype=np.float32)
+                return labels.reshape(-1, 1)
+            else:
+                if node_list is None:
+                    node_list = self.get_node_list('N7', df)
+                if self.config.get('scalar_label_transform') == 'log1p':
+                    # Mean log1p(scalar_label) across all rows sharing this primary_id.
+                    # log1p before averaging: variance-stabilizes heavy-tailed counts
+                    # (e.g. helpful_vote), consistent with N8/N9 treatment below.
+                    pid_to_scalars: dict = defaultdict(list)
+                    for pid, val in zip(df['primary_id'], df['scalar_label']):
+                        if not pd.isna(val):
+                            pid_to_scalars[pid].append(np.log1p(float(val)))
+                    labels = np.array([
+                        np.mean(pid_to_scalars[pid]) if pid_to_scalars.get(pid) else 0.0
+                        for pid in node_list
+                    ], dtype=np.float32)
+                else:
+                    # History: first-occurrence (primary_id unique per sample row).
+                    pid_to_scalar: dict = {}
+                    for pid, val in zip(df['primary_id'], df['scalar_label']):
+                        if pid not in pid_to_scalar:
+                            pid_to_scalar[pid] = val
+                    labels = np.array([pid_to_scalar.get(pid, np.nan)
+                                       for pid in node_list], dtype=np.float32)
                 return labels.reshape(-1, 1)
         
         elif node_type == 'N8':
@@ -310,53 +329,36 @@ class GenericDataManager(BaseDataManager):
             if not self.config['has_secondary_id']:
                 raise ValueError(f"N8 unavailable for {self.dataset}")
             
-            if self.dataset == 'arxiv':
-                # ArXiv: mean centrality of secondary entity's primary entities
-                if graph is None:
-                    raise ValueError("Graph required for ArXiv M2 centrality computation")
-                
-                # First compute N7 centralities
-                n7_centralities = self._compute_centrality(graph, df['primary_id'].tolist())
-                n7_cent_map = dict(zip(df['primary_id'], n7_centralities.flatten()))
-                
-                # Aggregate to N8
-                sec_to_cents = defaultdict(list)
-                for _, row in df.iterrows():
-                    sec_id = row['secondary_id']
-                    prim_id = row['primary_id']
-                    
-                    if sec_id is None:
-                        continue
-                    
-                    cent = n7_cent_map.get(prim_id, 0.0)
-                    
-                    # Handle list (arxiv) vs single value (amazon)
-                    if isinstance(sec_id, list):
-                        for sid in sec_id:
-                            sec_to_cents[sid].append(cent)
-                    else:
-                        sec_to_cents[sec_id].append(cent)
-                
-                # Compute mean for each N8 node
+            if self.config.get('m2_source') == 'derived_from_text':
+                # Mean abstract length across each author's papers in this sample.
                 if node_list is None:
                     node_list = self.get_node_list('N8', df)
-                
-                mean_cents = np.array([
-                    np.mean(sec_to_cents.get(nid, [0.0])) for nid in node_list
-                ], dtype=np.float32)
-                
-                return mean_cents.reshape(-1, 1)
+                author_to_lengths: dict = defaultdict(list)
+                for sec_id, tfa, tfb in zip(df['secondary_id'],
+                                            df['text_fidelity_a'],
+                                            df['text_fidelity_b']):
+                    if sec_id is None:
+                        continue
+                    tfa = tfa if isinstance(tfa, str) else ''
+                    tfb = tfb if isinstance(tfb, str) else ''
+                    abst_len = len(tfa) - len(tfb)
+                    authors = sec_id if isinstance(sec_id, list) else [sec_id]
+                    for author in authors:
+                        author_to_lengths[author].append(abst_len)
+                labels = np.array([np.mean(author_to_lengths.get(a, [0.0])) for a in node_list],
+                                  dtype=np.float32)
+                return labels.reshape(-1, 1)
             else:
-                # Amazon: mean helpful_vote of user's reviews
+                # Amazon: mean log1p(helpful_vote) of user's reviews
                 sec_to_scalars = defaultdict(list)
                 for _, row in df.iterrows():
                     sec_id = row['secondary_id']
                     scalar = row['scalar_label']
-                    
+
                     if sec_id is None or pd.isna(scalar):
                         continue
-                    
-                    sec_to_scalars[sec_id].append(float(scalar))
+
+                    sec_to_scalars[sec_id].append(np.log1p(float(scalar)))
                 
                 if node_list is None:
                     node_list = self.get_node_list('N8', df)
@@ -369,44 +371,34 @@ class GenericDataManager(BaseDataManager):
         
         elif node_type == 'N9':
             # Aggregate entity scalar labels
-            if self.dataset == 'arxiv':
-                # Mean centrality of category's papers
-                if graph is None:
-                    raise ValueError("Graph required for ArXiv M2 centrality computation")
-                
-                n7_centralities = self._compute_centrality(graph, df['primary_id'].tolist())
-                n7_cent_map = dict(zip(df['primary_id'], n7_centralities.flatten()))
-                
-                agg_to_cents = defaultdict(list)
-                for _, row in df.iterrows():
-                    agg_id = row['aggregate_id']
-                    prim_id = row['primary_id']
-                    
-                    if pd.isna(agg_id):
-                        continue
-                    
-                    cent = n7_cent_map.get(prim_id, 0.0)
-                    agg_to_cents[agg_id].append(cent)
-                
+            if self.config.get('m2_source') == 'derived_from_text':
+                # Mean abstract length across each category's papers in this sample.
                 if node_list is None:
                     node_list = self.get_node_list('N9', df)
-                
-                mean_cents = np.array([
-                    np.mean(agg_to_cents.get(nid, [0.0])) for nid in node_list
-                ], dtype=np.float32)
-                
-                return mean_cents.reshape(-1, 1)
+                cat_to_lengths: dict = defaultdict(list)
+                for agg_id, tfa, tfb in zip(df['aggregate_id'],
+                                            df['text_fidelity_a'],
+                                            df['text_fidelity_b']):
+                    if pd.isna(agg_id) or agg_id is None:
+                        continue
+                    tfa = tfa if isinstance(tfa, str) else ''
+                    tfb = tfb if isinstance(tfb, str) else ''
+                    cat_to_lengths[agg_id].append(len(tfa) - len(tfb))
+                labels = np.array([np.mean(cat_to_lengths.get(c, [0.0])) for c in node_list],
+                                  dtype=np.float32)
+                return labels.reshape(-1, 1)
             else:
-                # Amazon/History: mean scalar of aggregate's primary entities
+                # Amazon: mean log1p(helpful_vote); History: mean price (no transform).
                 agg_to_scalars = defaultdict(list)
                 for _, row in df.iterrows():
                     agg_id = row['aggregate_id']
                     scalar = row['scalar_label']
-                    
+
                     if pd.isna(agg_id) or pd.isna(scalar):
                         continue
-                    
-                    agg_to_scalars[agg_id].append(float(scalar))
+
+                    val = np.log1p(float(scalar)) if self.config.get('scalar_label_transform') == 'log1p' else float(scalar)
+                    agg_to_scalars[agg_id].append(val)
                 
                 if node_list is None:
                     node_list = self.get_node_list('N9', df)
@@ -419,29 +411,6 @@ class GenericDataManager(BaseDataManager):
         
         else:
             raise ValueError(f"Unknown node_type: {node_type}")
-    
-    def _compute_centrality(self, graph: nx.Graph, node_list: List) -> np.ndarray:
-        """
-        Compute centrality composite for ArXiv M2.
-        Normalized sum of PageRank, clustering coefficient, and degree centrality.
-        """
-        pagerank = nx.pagerank(graph, alpha=0.85)
-        clustering = nx.clustering(graph)
-        degree_cent = nx.degree_centrality(graph)
-        
-        def normalize(d, keys):
-            vals = np.array([d.get(k, 0.0) for k in keys], dtype=np.float64)
-            vmin, vmax = vals.min(), vals.max()
-            if vmax > vmin:
-                vals = (vals - vmin) / (vmax - vmin)
-            return vals
-        
-        pr = normalize(pagerank, node_list)
-        cl = normalize(clustering, node_list)
-        dc = normalize(degree_cent, node_list)
-        
-        combined = (pr + cl + dc) / 3.0
-        return combined.astype(np.float32).reshape(-1, 1)
     
     def get_structural_edges(self, df: pd.DataFrame) -> List[Tuple]:
         """Get pre-given structural edges (E10c, History only)."""

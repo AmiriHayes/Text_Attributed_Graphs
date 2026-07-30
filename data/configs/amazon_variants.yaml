@@ -1,0 +1,300 @@
+dataset: amazon
+
+# ─────────────────────────────────────────────────────────────────────────
+# DATASET CONTEXT
+# ─────────────────────────────────────────────────────────────────────────
+# Source: Amazon Reviews 2023, Sports_and_Outdoors category (review-level
+# JSONL), 100k reviews, 50/50 train/test split. Product titles for T12b/T12a
+# joined from meta_Sports_and_Outdoors.jsonl on parent_asin (100% match
+# rate confirmed — all 49,788 unique parent_asins matched).
+#
+# primary_id = asin (review's product asin). secondary_id = user_id (single
+# string, N8). aggregate_id = parent_asin, the product family (N9).
+# text_fidelity_b = product title (joined from meta). text_fidelity_a =
+# product title + review text.
+#
+# *** M1 LABEL: 47-class sport subcategory (46 named + Other) ***
+# categorical_label = level-3 Amazon category breadcrumb derived from
+# parent_asin via meta_Sports_and_Outdoors.jsonl. Labels 0-45 are the 46
+# most frequent subcategories (covering 95% of reviews); label 46 = "Other"
+# (remaining tail + the 2,360 reviews with no meta match) = 4,981 rows (5.0%).
+# All 50k rows per split are retained. Majority class = Camping & Hiking
+# (label 0, 17.2%). Class map built once and cached in code/derived/
+# amazon_m1_category_map.json + amazon_m1_class_names.json by label_factory.py.
+#
+# *** C4 CONSEQUENCE ***
+# parent_asin → l3_cat is DETERMINISTIC: every review of the same product
+# family has the same categorical_label. Therefore E10a (same parent_asin)
+# and E11c (functional similarity = same parent_asin) ARE C4 leaks for
+# M1+N7 and are excluded below. For N8 the label is mode(l3_cat) across a
+# user's reviews — not tautologically determined by sharing a single
+# parent_asin — so N8 is unaffected. N9 structural exclusions unchanged.
+#
+# *** M2 / M6 EXCLUDED ***
+# scalar_label = helpful_vote. M2 and M6 are excluded because helpful_vote is
+# structurally zero-inflated across Amazon Reviews 2023 categories: confirmed
+# across Sports_and_Outdoors, Electronics, and Toys_and_Games (~73-75% zeros,
+# median=0 in all three). The M6 gap-baseline guard (|mean_true - mean_pred| <
+# 1e-6) always fires. Revisit if a less zero-inflated scalar label is identified.
+# M4 (edge scalar = |helpful_vote_i - helpful_vote_j|) is retained — it
+# measures relative helpfulness between connected nodes, which has more signal
+# than absolute prediction from zero-dominated distributions.
+#
+# M5 = average clustering coefficient (binary > 0.3) — retained.
+#
+# structural_edges = None (no pre-given relation for this dataset; E10c =
+# the natural user-review bipartite graph, as in ArXiv).
+
+# ─────────────────────────────────────────────────────────────────────────
+# AXIS DEFINITIONS
+# ─────────────────────────────────────────────────────────────────────────
+axes:
+  M:
+    M1:
+      name: node_categorical
+      label: categorical_label
+      concrete_meaning: >
+        47-class sport subcategory prediction. For N7: classify which Amazon
+        level-3 category the reviewed product belongs to (e.g. label 0 =
+        Camping & Hiking, label 1 = Cycling, …, label 46 = Other). Derived
+        from parent_asin via meta_Sports_and_Outdoors.jsonl — deterministic
+        per product family. For N8: mode subcategory across a user's reviews
+        (dominant sport interest). For N9: the product family's own subcategory
+        (deterministic). N8/N9 labels aggregated same pattern as ArXiv.
+    M2:
+      name: node_scalar
+      label: scalar_label
+      concrete_meaning: >
+        Predict helpful_vote (count of "helpful" votes a review received) —
+        a fixed pre-existing value, NOT graph-derived (unlike ArXiv's
+        centrality). For N8: mean helpful_vote across a user's reviews. For
+        N9: mean helpful_vote across a product family's reviews. Both
+        precomputed once via groupby, independent of (N,E).
+    M3:
+      name: edge_categorical
+      label: derived_same_family
+      concrete_meaning: >
+        For a connected pair of same-type nodes, predict whether they share
+        a product family (same aggregate_id/parent_asin). Requires N-N
+        edges — E10c excluded (bipartite), same structural reasoning as
+        ArXiv.
+    M4:
+      name: edge_scalar
+      label: derived_helpful_vote_diff
+      concrete_meaning: >
+        For a connected pair, predict |helpful_vote_i - helpful_vote_j|.
+    M5:
+      name: global_categorical
+      label: derived_clustering_binary
+      concrete_meaning: >
+        For the constructed 1k-node subgraph, predict whether its average
+        clustering coefficient exceeds 0.3 (binary).
+    M6:
+      name: global_scalar
+      label: derived_clustering_value
+      concrete_meaning: >
+        For the constructed 1k-node subgraph, predict its exact average
+        clustering coefficient value.
+
+  N:
+    N7:
+      name: primary_entity
+      concrete_meaning: >
+        Each N7 node is one review (primary_id = asin of the reviewed
+        product). Text features from text_fidelity_a/b (product title [+
+        review text]). ~50k reviews per split.
+    N8:
+      name: secondary_entity
+      concrete_meaning: >
+        Each N8 node is one reviewer (user_id). Text features from
+        user_embeddings.npy (mean-pooled T12b product-title embeddings
+        across that user's reviews). M1/M2 labels for N8 are aggregated
+        (mode / mean) across the user's reviews. NOTE: user_id is sparse —
+        many users appear once, so N8 graphs may be small/disconnected
+        within a 1k-node sample; worth checking empirically.
+    N9:
+      name: aggregate_entity
+      concrete_meaning: >
+        Each N9 node is one product family (parent_asin). Text features from
+        family_embeddings.npy (mean-pooled T12b product-title embeddings of
+        all reviews for that family).
+
+  E:
+    E10a:
+      name: categorical_gt
+      concrete_meaning: >
+        Connect two N7 (or two N8) nodes if they share the same
+        aggregate_id/parent_asin (for N8: "these two users have both
+        reviewed at least one product in the same family" — requires
+        aggregation). NOT a C4 leak for M1 here (see dataset context) —
+        same-family reviews/users can have different rating tendencies.
+        Undefined for N9 (see structural_notes). IS a C4 leak for M3 (same
+        reasoning as ArXiv/History — M3's label IS "same aggregate_id").
+    E10b:
+      name: scalar_gt
+      concrete_meaning: >
+        Weighted N-N edges from shared-reviewer data, independent of rating
+        and category. For N7: weight = 1 if the same user_id wrote both
+        reviews (co-review-by-same-user). For N8: weight = number of
+        products both users reviewed in common (co-reviewed-product count).
+        For N9: weight = number of shared reviewers between two product
+        families (aggregated from N7/N8 level — requires aggregation in
+        edge_factory, same pattern as ArXiv's N9+E10b).
+    E10c:
+      name: bipartite_participation
+      concrete_meaning: >
+        The natural pre-given relational structure for this dataset: the
+        user-review bipartite graph (user wrote review of product). For N9,
+        the analogous bipartite relation is family-user (user has a review
+        of a product in this family, derived transitively). BIPARTITE, NOT
+        N-N: valid for node-level (M1/M2) and global (M5/M6) tasks, EXCLUDED
+        for M3/M4 — same structural reasoning as ArXiv.
+    E11a:
+      name: semantic_similarity
+      concrete_meaning: >
+        Cosine similarity (thresholded) on T-fidelity embeddings:
+        review_embeddings(.npy)/_contextual for N7, user_embeddings.npy for
+        N8, family_embeddings.npy for N9.
+    E11b:
+      name: structural_similarity
+      concrete_meaning: >
+        Edges based on degree/centrality similarity between nodes of the
+        same type.
+    E11c:
+      name: functional_similarity
+      concrete_meaning: >
+        Similarity-form edges connecting N7 (or N8) nodes that share
+        aggregate_id/parent_asin (N7) or a shared product family (N8) — same
+        underlying relation as E10a, framed as similarity rather than
+        GT-labeled. NOT a C4 leak for M1 (same as E10a — see dataset
+        context). Undefined for N9 (see structural_notes).
+
+  T:
+    T12a:
+      name: contextual
+      concrete_meaning: >
+        text_fidelity_a = product title + review text, e.g. "Sure-Grip
+        Zombie Wheels Low 59mm 4 Pack This spray is really nice..."
+        (NOTE: example title shown is illustrative of the meta-join; actual
+        product title corresponds to the reviewed asin, not necessarily a
+        skate-wheel product for every row).
+    T12b:
+      name: standard
+      concrete_meaning: >
+        text_fidelity_b = product title only (joined from meta), e.g.
+        "Sure-Grip Zombie Wheels Low 59mm 4 Pack" — the entity's own name,
+        nothing else.
+    T12e:
+      name: baseline
+      concrete_meaning: "Empty string '' — not stored, used directly downstream."
+
+# ─────────────────────────────────────────────────────────────────────────
+# STRUCTURAL NOTES (constraints beyond C1-C4, specific to this dataset)
+# ─────────────────────────────────────────────────────────────────────────
+structural_notes:
+  - "C4 boundary (same principle as ArXiv/History): C4 excludes edge
+     constructions WE DERIVE that are definitionally/tautologically
+     equivalent to the prediction target. For M1 (rating_label), NO edge
+     type is tautological with it — rating_label is independent of
+     aggregate_id, secondary_id, and all E definitions here. For M3
+     (derived_same_family), E10a/E11c ARE tautological (M3's label literally
+     IS 'same aggregate_id') and are excluded."
+  - "E10a and E11c are defined only for N7/N8 (where 'same/shared
+     aggregate_id' is meaningful relative to the node). Undefined for N9 —
+     an N9 node IS a product family (aggregate_id itself), so 'same family
+     as itself' has no second axis to compare against (same reasoning as
+     ArXiv/History)."
+  - "E10c is BIPARTITE (user-review for N7/N8; family-user for N9), not N-N.
+     M3/M4 require N-N edges of the node type being predicted on — E10c
+     produces no such edges, so E10c is EXCLUDED from M3/M4 for ALL N (same
+     as ArXiv)."
+  - "M1+N9 IS INCLUDED here (unlike M1+N9 in ArXiv/History, which was
+     excluded as tautological) — a product family's majority rating
+     tendency is a non-trivial aggregate label, not the family's own
+     identity."
+
+# ─────────────────────────────────────────────────────────────────────────
+# OMEGA* — valid (N, E) combinations per M
+# ─────────────────────────────────────────────────────────────────────────
+variants:
+  M1:  # node categorical — N7 E10a/E11c excluded (C4: parent_asin→l3_cat deterministic). N8/N9 unchanged.
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+    - {N: N8, E: E10a}
+    - {N: N8, E: E10b}
+    - {N: N8, E: E10c}
+    - {N: N8, E: E11a}
+    - {N: N8, E: E11b}
+    - {N: N8, E: E11c}
+    - {N: N9, E: E10b}
+    - {N: N9, E: E10c}
+    - {N: N9, E: E11a}
+    - {N: N9, E: E11b}
+
+  # M2 excluded — see dataset context above (helpful_vote zero-inflation).
+
+  M3:  # edge categorical — N7, N8 only. GT edges only (C2). E10a excluded (C4 — M3 label IS same-family). E10c excluded (bipartite)
+    - {N: N7, E: E10b}
+    - {N: N8, E: E10b}
+
+  M4:  # edge scalar — N7, N8 only. Same E10a/E10c exclusions as M3
+    - {N: N7, E: E10b}
+    - {N: N8, E: E10b}
+
+  M5:  # global categorical — same (N,E) space as M1/M2
+    - {N: N7, E: E10a}
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+    - {N: N7, E: E11c}
+    - {N: N8, E: E10a}
+    - {N: N8, E: E10b}
+    - {N: N8, E: E10c}
+    - {N: N8, E: E11a}
+    - {N: N8, E: E11b}
+    - {N: N8, E: E11c}
+    - {N: N9, E: E10b}
+    - {N: N9, E: E10c}
+    - {N: N9, E: E11a}
+    - {N: N9, E: E11b}
+
+  # M6 excluded — derived post-hoc from M2; M2 excluded, so M6 excluded by extension.
+
+# ─────────────────────────────────────────────────────────────────────────
+# REMOVE LIST — applied during enumeration, listed here for documentation
+# ─────────────────────────────────────────────────────────────────────────
+remove_list:
+  - rule: "(*, N9, E10a), (*, N9, E11c)"
+    reason: "Structural — 'same/shared aggregate_id' undefined when nodes ARE product families — see structural_notes."
+  - rule: "(M1, N7, E10a), (M1, N7, E11c)"
+    reason: "C4 — parent_asin maps deterministically to l3_cat (the M1 label), so same-family edges tautologically encode the label for individual N7 review nodes."
+  - rule: "(M3, *, E10a), (M4, *, E10a)"
+    reason: "C4 (M3) — E10a directly encodes the M3 same-family label; (M4) E10a binary GT edges have no natural scalar label."
+  - rule: "(M3, *, E10c), (M4, *, E10c)"
+    reason: "Structural — E10c is bipartite (user-review), produces no N-N edges for an edge-pair label of type N — see structural_notes."
+  - rule: "(M3, *, E11*), (M4, *, E11*)"
+    reason: "C2 — similarity edges carry no edge-level supervision signal."
+  - rule: "(M3, N9, *), (M4, N9, *)"
+    reason: "Edge-pair tasks between product-family nodes are undefined (no natural N9-N9 framing distinct from M1/M2/M5/M6)."
+
+# ─────────────────────────────────────────────────────────────────────────
+# SUMMARY
+# ─────────────────────────────────────────────────────────────────────────
+summary:
+  M1_combos: 14
+  M2_combos: 0   # excluded — helpful_vote zero-inflation (see dataset context)
+  M3_combos: 2
+  M4_combos: 2
+  # M5 derived post-hoc from M1 (TVD); M6 excluded (M2 excluded).
+  M5_combos: 14  # mirrors M1
+  M6_combos: 0   # excluded with M2
+  text_levels: 3
+  # Independent training runs (M1/M3/M4 only):
+  runnable_MNE_combos: 18
+  runnable_variants: 54
+  # Total output rows including derived M5:
+  total_MNE_combos: 32
+  total_variants: 96

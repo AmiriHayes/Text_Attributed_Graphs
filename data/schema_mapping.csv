@@ -1,0 +1,28 @@
+dataset,generic_key,original_key(s),notes
+arxiv,primary_id,id,paper identifier
+arxiv,secondary_id,authors_parsed,list of 'First|Last' author strings (N8)
+arxiv,aggregate_id,categories,"top-level category, e.g. 'cond-mat' (N9)"
+arxiv,text_fidelity_a,"title, abstract",T12a contextual: title + abstract (entity name + primary content)
+arxiv,text_fidelity_b,title,T12b standard: title only (entity's own name/identifier)
+arxiv,text_fidelity_e,(none),T12e baseline: empty string '' (not stored)
+arxiv,categorical_label,categories,M1/M3: top-level category (same as aggregate_id)
+arxiv,scalar_label,(derived),"M2/M4: centrality composite, computed at TAG construction time"
+arxiv,structural_edges,(none),not available for ArXiv
+amazon,primary_id,asin,product/review identifier (N7)
+amazon,secondary_id,user_id,reviewer identifier (N8)
+amazon,aggregate_id,parent_asin,product family grouping (N9)
+amazon,text_fidelity_a,"parent_asin -> meta_Sports_and_Outdoors.title, text",T12a contextual: product title + review text
+amazon,text_fidelity_b,parent_asin -> meta_Sports_and_Outdoors.title,"T12b standard: product title only (entity's own name, joined from product metadata)"
+amazon,text_fidelity_e,(none),T12e baseline: empty string '' (not stored)
+amazon,categorical_label,rating_label,M1/M3: rating >= 4.0 -> 1 else 0
+amazon,scalar_label,helpful_vote,M2/M4: helpful vote count
+amazon,structural_edges,(none),not available for Amazon
+history,primary_id,node_id,book identifier (N7)
+history,secondary_id,(none),no author/user column — N8 unavailable for this dataset
+history,aggregate_id,category,"book category, e.g. 'World' / 'Americas' (N9)"
+history,text_fidelity_a,text,"T12a contextual: book title + description, both parsed from 'Description: ...; Title: ...'"
+history,text_fidelity_b,text,"T12b standard: book title only, parsed from 'Description: ...; Title: ...' (entity's own name)"
+history,text_fidelity_e,(none),T12e baseline: empty string '' (not stored)
+history,categorical_label,label,M1/M3: binary label as provided by CS-TAG
+history,scalar_label,price,"M2/M4: price, parsed from '$X.XX' string to float"
+history,structural_edges,neighbour,"E10d pre-given structural edges, parsed from stringified list"

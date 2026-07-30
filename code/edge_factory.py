@@ -129,18 +129,20 @@ class EdgeFactory:
     @staticmethod
     def _build_scalar_gt(df, node_type: str, node_list: List, data_manager) -> List[Tuple]:
         """
-        E10b: Dataset-specific weighted edges.
+        E10b: Weighted co-participation edges, dispatched via config keys.
+        - secondary_id_is_list=True  → coauthorship projection (e.g. ArXiv)
+        - has_structural_edges=True  → structural neighbour co-occurrence (e.g. History)
+        - has_secondary_id=True, secondary_id_is_list=False → scalar user-product edges (e.g. Amazon variants)
         """
-        dataset = data_manager.dataset
-        
-        if dataset == 'arxiv':
+        cfg = data_manager.config
+        if cfg.get('secondary_id_is_list', False):
             return EdgeFactory._build_arxiv_coauthorship(df, node_type, node_list)
-        elif dataset == 'amazon':
-            return EdgeFactory._build_amazon_scalar_gt(df, node_type, node_list)
-        elif dataset == 'history':
+        elif cfg.get('has_structural_edges', False):
             return EdgeFactory._build_history_neighbour_cooccurrence(df, node_list)
+        elif cfg.get('has_secondary_id', False):
+            return EdgeFactory._build_amazon_scalar_gt(df, node_type, node_list)
         else:
-            raise ValueError(f"E10b not defined for {dataset}")
+            raise ValueError(f"E10b not defined for {data_manager.dataset}: no matching config dispatch")
     
     @staticmethod
     def _build_arxiv_coauthorship(df, node_type: str, node_list: List) -> List[Tuple]:
@@ -304,13 +306,13 @@ class EdgeFactory:
                N9: family-family if any cross-family product pair shares a reviewer
         History N7: structural_edges column (already N-N)
         """
-        dataset = data_manager.dataset
+        cfg = data_manager.config
         node_set = set(node_list)
 
-        if dataset == 'history':
+        if cfg.get('has_structural_edges', False):
             return data_manager.get_structural_edges(df)
 
-        if dataset == 'arxiv':
+        if cfg.get('secondary_id_is_list', False):
             if node_type == 'N7':
                 # paper-paper: share ≥1 author
                 author_to_papers = defaultdict(set)
@@ -368,7 +370,7 @@ class EdgeFactory:
                             edges.append(key)
                 return edges
 
-        if dataset == 'amazon':
+        if cfg.get('has_secondary_id', False) and not cfg.get('secondary_id_is_list', False):
             if node_type == 'N7':
                 # product-product: reviewed by ≥1 same user
                 user_to_products = defaultdict(set)
@@ -424,7 +426,7 @@ class EdgeFactory:
                             edges.append(key)
                 return edges
 
-        raise ValueError(f"E10c not defined for {dataset}")
+        raise ValueError(f"E10c not defined for {data_manager.dataset}: no matching config dispatch")
     
     @staticmethod
     def _build_semantic_similarity(node_list: List, embeddings: np.ndarray,

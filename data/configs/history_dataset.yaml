@@ -1,0 +1,13 @@
+# configs/history_dataset.yaml
+dataset: history
+has_secondary_id: false              # N8 unavailable for this dataset
+has_structural_edges: true           # E10d from structural_edges column
+embedding_prefix: book                 # book_embeddings.npy (T12b)
+contextual_embedding_available: true   # book_embeddings_contextual.npy (T12a)
+secondary_embedding_prefix: null
+aggregate_embedding_prefix: category   # category_embeddings.npy + category_index.json
+# M2 target: local z-score — (price_i - mean_N(i)) / (std_N(i) + eps)
+# Provably hard for MLP (requires neighbourhood aggregation). Moran's I is
+# negative by construction (high-price node pulls neighbours' targets down),
+# but the task itself has genuine GNN structural advantage.
+m2_transform: local_zscore

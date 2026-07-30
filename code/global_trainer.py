@@ -1,13 +1,17 @@
 """
 Global Trainer — TAG Research
-Trains graph-level GNN models (M5 global_categorical, M6 global_scalar) using
-torch_geometric DataLoader to batch multiple Data objects.
+DEPRECATED — GlobalTrainer and build_result_row_global are no longer called
+by the experiment pipeline. M5 and M6 are now derived post-hoc from M1/M2
+training runs via compute_aggregate_gap / build_derived_global_row in
+trainer.py. The original topology-based labels (avg_clustering > threshold,
+graph entropy) were found to be near-deterministic per edge type with almost
+no within-sample variance, making them uninformative about construction
+quality. The new derivation reuses the already-trained M1/M2 models and
+computes Aggregate_Gap (TVD for M5, abs mean-diff for M6) over test nodes at
+no additional training cost.
 
-Unlike GNNTrainer (which operates on a single graph with node/edge masks),
-GlobalTrainer operates across a *pool* of graphs, one label per graph.
-
-  M5 — binary graph classification  → CrossEntropyLoss, accuracy metric
-  M6 — graph-level regression       → MSELoss, MAE/MSE metric (R² aggregated externally)
+This file is kept for reference and is not imported by the active pipeline.
+Do not delete without explicit sign-off.
 """
 
 import copy

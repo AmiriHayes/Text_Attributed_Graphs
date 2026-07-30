@@ -486,5 +486,345 @@ def main():
     print(f'\nDone. PNGs saved in {TREE_DIR}/')
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Programmatic API — fit_tree / compare_trees / predict_and_validate
+# (Tasks 1-3 from the analysis spec)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def build_variant_summary(
+    df: pd.DataFrame,
+    group_cols: list = None,
+    score_col: str = None,
+) -> pd.DataFrame:
+    """
+    Task 1 — Per-variant aggregation.
+
+    For each (Task_Idx, Node_Idx, Edge_Idx, Text_Idx) variant compute per-split
+    mean, std, and non-NaN count of `score_col` (defaults to normalized_score).
+    NaN rows are excluded; they are NOT treated as 0.
+
+    Returned columns:
+        task_type, Task_Idx, Node_Idx, Edge_Idx, Text_Idx,
+        train_mean, train_std, n_train_valid,
+        test_mean,  test_std,  n_test_valid
+    """
+    if group_cols is None:
+        group_cols = ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']
+    if score_col is None:
+        score_col = SCORE_COL
+
+    extra = list(group_cols)
+    if 'task_type' in df.columns and 'task_type' not in extra:
+        extra = ['task_type'] + extra
+
+    valid = df.dropna(subset=[score_col])
+
+    def _agg(split: str) -> pd.DataFrame:
+        return (
+            valid[valid['run_split'] == split]
+            .groupby(extra, sort=False)[score_col]
+            .agg(**{
+                f'{split}_mean':    'mean',
+                f'{split}_std':     'std',
+                f'n_{split}_valid': 'count',
+            })
+            .reset_index()
+        )
+
+    train_agg = _agg('train')
+    test_agg  = _agg('test')
+    merged    = train_agg.merge(test_agg, on=extra, how='outer')
+
+    col_order = extra + [
+        'train_mean', 'train_std', 'n_train_valid',
+        'test_mean',  'test_std',  'n_test_valid',
+    ]
+    return merged[[c for c in col_order if c in merged.columns]]
+
+
+def zero_inflation_diagnostic(
+    df: pd.DataFrame,
+    score_col: str = None,
+) -> pd.DataFrame:
+    """
+    Task 2 — Zero-inflation diagnostic.
+
+    Reports, per Task_Idx (M1-M6), what fraction of individual sample rows
+    have normalized_score == 0.0 exactly (not NaN).  Rows are grouped by the
+    Step-1 formula family:
+        pseudo-R2  : M1, M3  (McFadden pseudo-R² → max(0,·))
+        R2         : M2, M4  (standard R² → max(0,·))
+        TVD-ratio  : M5      (TVD-relative improvement)
+        gap-ratio  : M6      (median-gap-relative improvement)
+
+    Returns one row per Task_Idx with columns:
+        task_idx, task_type, step1_formula,
+        n_total, n_zero, pct_zero, n_nan, n_degen
+    """
+    if score_col is None:
+        score_col = SCORE_COL
+
+    FAMILY = {
+        'M1': 'pseudo-R2', 'M3': 'pseudo-R2',
+        'M2': 'R2',        'M4': 'R2',
+        'M5': 'TVD-ratio', 'M6': 'gap-ratio',
+    }
+
+    task_col = 'Task_Idx' if 'Task_Idx' in df.columns else 'task_type'
+    type_col = 'task_type' if 'task_type' in df.columns else None
+
+    rows = []
+    for key, sub in df.groupby(task_col):
+        n_total = len(sub)
+        n_zero  = int((sub[score_col] == 0.0).sum())
+        n_nan   = int(sub[score_col].isna().sum())
+        n_degen = int(sub['degenerate'].sum()) if 'degenerate' in sub.columns else 0
+        tt      = sub[type_col].iloc[0] if type_col else 'unknown'
+        rows.append({
+            'task_idx':     key,
+            'task_type':    tt,
+            'step1_formula': FAMILY.get(str(key), 'unknown'),
+            'n_total':      n_total,
+            'n_zero':       n_zero,
+            'pct_zero':     round(100.0 * n_zero / n_total, 1) if n_total else float('nan'),
+            'n_nan':        n_nan,
+            'n_degen':      n_degen,
+        })
+    return pd.DataFrame(rows)
+
+
+def fit_tree(
+    variant_score_df: pd.DataFrame,
+    target_col: str,
+    features: list = None,
+    max_depth: int = 8,
+) -> dict:
+    """
+    Task 3 — Fit a DecisionTreeRegressor on one-hot-encoded construction axes.
+
+    Parameters
+    ----------
+    variant_score_df : one row per variant; must contain feature columns and
+        target_col.  Typically the output of build_variant_summary().
+    target_col : score column to predict (e.g. 'train_mean' or 'test_mean').
+    features : categorical feature columns.  Defaults to whichever of
+        ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx'] exist in the frame.
+    max_depth : maximum tree depth (default 8).
+
+    Returns
+    -------
+    dict with keys:
+        tree, ohe, ohe_names, ohe_to_axis_val, feature_cols,
+        X, y, variant_df, target_col, r2
+    """
+    if features is None:
+        features = [c for c in ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']
+                    if c in variant_score_df.columns]
+
+    try:
+        ohe = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+    except TypeError:
+        ohe = OneHotEncoder(sparse=False, handle_unknown='ignore')
+
+    X = ohe.fit_transform(variant_score_df[features])
+    ohe_names       = list(ohe.get_feature_names_out(features))
+    ohe_to_axis_val = {
+        f'{col}_{cat}': (col, str(cat))
+        for i, col in enumerate(features)
+        for cat in ohe.categories_[i]
+    }
+
+    y          = variant_score_df[target_col].values.astype(float)
+    valid_mask = ~np.isnan(y)
+
+    tree = DecisionTreeRegressor(
+        criterion='squared_error', max_depth=max_depth,
+        min_samples_leaf=3, random_state=42,
+    )
+    tree.fit(X[valid_mask], y[valid_mask])
+
+    return {
+        'tree':            tree,
+        'ohe':             ohe,
+        'ohe_names':       ohe_names,
+        'ohe_to_axis_val': ohe_to_axis_val,
+        'feature_cols':    features,
+        'X':               X,
+        'y':               y,
+        'variant_df':      variant_score_df,
+        'target_col':      target_col,
+        'r2':              float(tree.score(X[valid_mask], y[valid_mask])),
+    }
+
+
+# ── internal helpers ──────────────────────────────────────────────────────────
+
+def _encode_for_tree(tree_result: dict, df: pd.DataFrame) -> np.ndarray:
+    """Apply tree_result's fitted OHE to df.  Unknown categories → all-zeros."""
+    return tree_result['ohe'].transform(df[tree_result['feature_cols']])
+
+
+def _count_nodes(t, node: int) -> int:
+    if t.feature[node] == -2:
+        return 1
+    return (1
+            + _count_nodes(t, t.children_left[node])
+            + _count_nodes(t, t.children_right[node]))
+
+
+def _tree_edit_distance(tree_a, tree_b, na: int = 0, nb: int = 0) -> int:
+    """
+    Ordered top-down binary tree edit distance.
+
+    Aligns trees by position (same root-to-node path) rather than computing the
+    globally optimal Zhang-Shasha correspondence.  Cost model:
+      - Different split feature at the same position → 1 (substitution)
+      - One tree has stopped splitting (leaf vs. subtree) → subtree_size − 1
+        (insert or delete the excess subtree)
+    This approximation is exact when trees have identical structure; for trees
+    of depth ≤ 8 with OHE binary splits it gives a useful structural distance
+    without the O(n²m²) overhead of full Zhang-Shasha.
+    """
+    ta, tb    = tree_a.tree_, tree_b.tree_
+    a_is_leaf = ta.feature[na] == -2
+    b_is_leaf = tb.feature[nb] == -2
+
+    if a_is_leaf and b_is_leaf:
+        return 0
+    if a_is_leaf:
+        return _count_nodes(tb, nb) - 1
+    if b_is_leaf:
+        return _count_nodes(ta, na) - 1
+
+    sub = 0 if ta.feature[na] == tb.feature[nb] else 1
+    return (sub
+            + _tree_edit_distance(tree_a, tree_b,
+                                  ta.children_left[na],  tb.children_left[nb])
+            + _tree_edit_distance(tree_a, tree_b,
+                                  ta.children_right[na], tb.children_right[nb]))
+
+
+def _assign_bands(scores: np.ndarray, task_types: np.ndarray = None) -> np.ndarray:
+    """
+    Assign 'high' / 'mid' / 'low' bands using tertile thresholds (33rd / 67th
+    percentile) computed within each task_type group when supplied, else globally.
+    This matches the methodology doc's percentile-based band definition.
+    """
+    bands = np.full(len(scores), 'mid', dtype=object)
+
+    def _apply(mask, s):
+        if mask.sum() < 3:
+            return
+        lo, hi = np.percentile(s[mask], [33.33, 66.67])
+        bands[mask & (scores >= hi)] = 'high'
+        bands[mask & (scores <= lo)] = 'low'
+
+    if task_types is not None and len(task_types) == len(scores):
+        for tt in np.unique(task_types):
+            _apply(task_types == tt, scores)
+    else:
+        _apply(np.ones(len(scores), dtype=bool), scores)
+
+    return bands
+
+
+# ── public comparison functions ───────────────────────────────────────────────
+
+def compare_trees(
+    tree_result_a: dict,
+    tree_result_b: dict,
+    variant_score_df: pd.DataFrame,
+) -> dict:
+    """
+    Task 3 — Compare two fitted trees on the same variant set.
+
+    Both trees must have been fit with the same feature columns.
+    tree_result_a's OHE is used for encoding (handle_unknown='ignore' makes
+    this safe even when categories differ slightly between fits).
+
+    Returns
+    -------
+    dict:
+        tree_edit_distance : int   — ordered top-down TED
+        spearman_rho       : float — Spearman ρ between tree_a and tree_b predictions
+        spearman_p         : float — two-sided p-value
+        band_accuracy      : float — fraction of variants where band (H/M/L) agrees
+    """
+    from scipy.stats import spearmanr
+
+    X      = _encode_for_tree(tree_result_a, variant_score_df)
+    pred_a = tree_result_a['tree'].predict(X)
+    pred_b = tree_result_b['tree'].predict(X)
+
+    tt = (variant_score_df['task_type'].values
+          if 'task_type' in variant_score_df.columns else None)
+    bands_a = _assign_bands(pred_a, tt)
+    bands_b = _assign_bands(pred_b, tt)
+
+    rho, p = spearmanr(pred_a, pred_b)
+    ted    = _tree_edit_distance(tree_result_a['tree'], tree_result_b['tree'])
+
+    return {
+        'tree_edit_distance': int(ted),
+        'spearman_rho':       float(rho),
+        'spearman_p':         float(p),
+        'band_accuracy':      float((bands_a == bands_b).mean()),
+    }
+
+
+def predict_and_validate(
+    tree_result_a: dict,
+    score_df_b: pd.DataFrame,
+    target_col: str = None,
+) -> dict:
+    """
+    Task 3 — Apply a tree fit on one data slice to predict scores on a different slice.
+
+    Parameters
+    ----------
+    tree_result_a : dict from fit_tree() — contains tree, ohe, feature_cols.
+    score_df_b    : DataFrame for the target slice; must contain the same feature
+                    columns and target_col.  Can be a different split, dataset, or pool.
+    target_col    : column in score_df_b to validate against.
+                    Defaults to tree_result_a['target_col'].
+
+    Returns
+    -------
+    dict:
+        spearman_rho  : float — Spearman ρ (predicted vs actual)
+        spearman_p    : float — two-sided p-value
+        band_accuracy : float — fraction of variants where predicted band matches
+                                actual band (tertile, per task_type)
+        predictions   : np.ndarray — raw predicted scores for all rows in score_df_b
+        actual        : np.ndarray — raw actual scores from target_col
+    """
+    from scipy.stats import spearmanr
+
+    if target_col is None:
+        target_col = tree_result_a['target_col']
+
+    X_b    = _encode_for_tree(tree_result_a, score_df_b)
+    pred   = tree_result_a['tree'].predict(X_b)
+    actual = score_df_b[target_col].values.astype(float)
+
+    valid        = ~np.isnan(actual)
+    pred_v       = pred[valid]
+    actual_v     = actual[valid]
+    tt           = (score_df_b['task_type'].values[valid]
+                    if 'task_type' in score_df_b.columns else None)
+    bands_pred   = _assign_bands(pred_v,   tt)
+    bands_actual = _assign_bands(actual_v, tt)
+
+    rho, p = spearmanr(pred_v, actual_v)
+
+    return {
+        'spearman_rho':  float(rho),
+        'spearman_p':    float(p),
+        'band_accuracy': float((bands_pred == bands_actual).mean()),
+        'predictions':   pred,
+        'actual':        actual,
+    }
+
+
 if __name__ == '__main__':
     main()

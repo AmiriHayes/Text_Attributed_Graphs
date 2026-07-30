@@ -2,3 +2,45 @@
 /ogb-data/
 kaggle.json
 .env
+
+# Mac system files
+.DS_Store
+**/.DS_Store
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Bot/diagnostic scripts (local only)
+code/scratch/
+
+# Research notes (local only)
+code/AUDIT_dataset_specificity.md
+code/SESSION_NOTES.md
+code/m2_m5_problem.pdf
+
+# Raw dataset directories (too large for GitHub)
+data/amazon/
+data/arxiv/
+data/history/
+data/electronics/train/
+data/toys/train/
+
+# Logs and temp files
+logs/
+*.log
+*.bak
+
+# Old local run directories (not pushed)
+output/run_20260619_180245/
+output/run_20260620/
+output/run_20260707_011514/
+output/run_20260707_091312/
+output/run_final_preflight/
+
+# Chat export HTML files
+*.html
+
+# Notebook checkpoints
+.ipynb_checkpoints/

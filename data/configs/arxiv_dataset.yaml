@@ -1,0 +1,16 @@
+# configs/arxiv_dataset.yaml
+dataset: arxiv
+has_secondary_id: true              # N8 = authors
+has_structural_edges: false         # no E10d
+secondary_id_is_list: true          # secondary_id = list of author strings per paper
+embedding_prefix: article            # article_embeddings.npy (T12b)
+contextual_embedding_available: true # article_embeddings_contextual.npy (T12a)
+secondary_embedding_prefix: author    # author_embeddings.npy + author_index.json
+aggregate_embedding_prefix: category  # category_embeddings.npy + category_index.json
+# M2 scalar label source.  'derived_from_text' means abstract character length:
+#   len(text_fidelity_a) - len(text_fidelity_b)  (i.e. len(title+abstract) - len(title))
+# Prior label was graph_centrality = normalized (PageRank+clustering+degree)/3,
+# which was ~91% predictable from node degree alone — graph leakage that does not
+# discriminate between construction choices.  Abstract length is external to graph
+# structure, varies substantially across papers, and is already in the stored schema.
+m2_source: derived_from_text

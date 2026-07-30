@@ -1,0 +1,14 @@
+# configs/amazon_dataset.yaml
+dataset: amazon
+has_secondary_id: true               # N8 = users
+has_structural_edges: false          # no E10d
+secondary_id_is_list: false          # secondary_id = single user_id string per review
+embedding_prefix: review              # review_embeddings.npy (T12b)
+contextual_embedding_available: true  # review_embeddings_contextual.npy (T12a)
+secondary_embedding_prefix: user       # user_embeddings.npy + user_index.json
+aggregate_embedding_prefix: family     # family_embeddings.npy + family_index.json
+# m1_meta_url triggers the frequency-ranked l3_cat M1 scheme in label_factory.py.
+# Presence of this key (any dataset, any category) enables the meta-join path;
+# absence means categorical_label from raw.jsonl is used directly (History, ArXiv).
+scalar_label_transform: log1p        # helpful_vote is heavy-tailed; log1p before averaging
+m1_meta_url: "https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023/resolve/main/raw/meta_categories/meta_Sports_and_Outdoors.jsonl"

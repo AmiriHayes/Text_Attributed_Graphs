@@ -1,0 +1,273 @@
+dataset: history
+
+# ─────────────────────────────────────────────────────────────────────────
+# DATASET CONTEXT
+# ─────────────────────────────────────────────────────────────────────────
+# Source: CS-TAG "Books-History" (Sherirto/CSTAG on HuggingFace), from
+# "A Comprehensive Study on Text-Attributed Graphs: Benchmarking and
+# Rethinking" (NeurIPS 2023 D&B track).
+#
+# Each row = one book. primary_id = node_id. text_fidelity_b = book title
+# (parsed from the 'text' field's "...; Title: X" suffix). text_fidelity_a =
+# title + description. structural_edges = pre-given 'neighbour' list (E10c).
+#
+# CONFIRMED (empirically, via groupby on history_train): categorical_label
+# is a DETERMINISTIC 1:1 INTEGER ENCODING of aggregate_id (12 categories,
+# nunique(categorical_label) == 1 within every aggregate_id group). Full
+# mapping: World=0, Americas=1, Asia=2, Military=3, Europe=4, Russia=5,
+# Africa=6, Ancient Civilizations=7, Middle East=8, Historical Study &
+# Educational Resources=9, Australia & Oceania=10, Arctic & Antarctica=11.
+#
+# This means: M1 = "classify which of the 12 History subject categories this
+# book belongs to" — the canonical CS-TAG node classification task. It also
+# means E10a ("same aggregate_id") and E11c ("shared category") are now a
+# DIRECT C4 LEAK for M1 specifically (predicting category using "connect
+# same-category nodes" edges is tautological) — see remove_list.
+
+# ─────────────────────────────────────────────────────────────────────────
+# AXIS DEFINITIONS
+# ─────────────────────────────────────────────────────────────────────────
+axes:
+  M:
+    M1:
+      name: node_categorical
+      label: categorical_label
+      concrete_meaning: >
+        Predict which of the 12 History subject categories a book belongs to
+        (e.g. "Military", "Ancient Civilizations", "Arctic & Antarctica") —
+        categorical_label is the integer encoding of aggregate_id. This is
+        the standard CS-TAG node classification benchmark.
+    M2:
+      name: node_scalar
+      label: scalar_label
+      concrete_meaning: >
+        Predict a book's price in USD (e.g. node 8049, category=Asia,
+        title="War and Secession: Pakistan, India, and the Creation of
+        Bangladesh", price=$79.94). scalar_label is independent of
+        categorical_label/aggregate_id.
+    M3:
+      name: edge_categorical
+      label: derived_same_category
+      concrete_meaning: >
+        For a pair of connected books, predict whether they belong to the
+        same category (e.g. both "Military") or different categories
+        (e.g. "Military" vs "Asia"). Derived post-construction from each
+        node's aggregate_id.
+    M4:
+      name: edge_scalar
+      label: derived_price_diff
+      concrete_meaning: >
+        For a pair of connected books, predict the absolute difference in
+        price (e.g. $79.94 vs $19.96 -> 59.98). Derived post-construction.
+    M5:
+      name: global_categorical
+      label: derived_density_binary
+      concrete_meaning: >
+        For the constructed 1k-node subgraph, predict whether its network
+        density exceeds 0.05 (binary). A graph-level property, computed
+        after edge construction.
+    M6:
+      name: global_scalar
+      label: derived_density_value
+      concrete_meaning: >
+        For the constructed 1k-node subgraph, predict its exact network
+        density value (continuous).
+
+  N:
+    N7:
+      name: primary_entity
+      concrete_meaning: >
+        Each N7 node is one book (primary_id = node_id). Text features come
+        from text_fidelity_a/b (title [+ description]). ~41.5k books total.
+    N9:
+      name: aggregate_entity
+      concrete_meaning: >
+        Each N9 node is one of the 12 History subject categories (e.g.
+        "Asia", "Military", "World") — aggregate_id groups books. N9 node
+        embeddings (category_embeddings.npy) are mean-pooled from the
+        T12b (title) embeddings of all books in that category.
+    # N8 unavailable — no author/user column for this dataset (has_secondary_id: false)
+
+  E:
+    E10a:
+      name: categorical_gt
+      concrete_meaning: >
+        Connect two book nodes if they share the same aggregate_id/category
+        (e.g. two "Military" books are connected, a "Military" and an "Asia"
+        book are not). N7 only — undefined for N9 (see structural_notes).
+        SEVERE C4 LEAK for M1 (see remove_list) since categorical_label ==
+        encode(aggregate_id).
+    E10b:
+      name: scalar_gt
+      concrete_meaning: >
+        Weighted edge between two books, weight = count of shared entries in
+        their structural_edges/neighbour lists (pure structural co-occurrence
+        in the CS-TAG-provided neighbour graph). Deliberately defined without
+        reference to category or price, so it remains valid across M1
+        (category), M2/M4 (price), and M3 (same-category) without C4 leakage.
+    E10c:
+      name: structural_edges
+      concrete_meaning: >
+        E10c ("the dataset's pre-given relational structure, used directly
+        as binary edges") — for History this is the raw 'neighbour' list
+        provided by CS-TAG (e.g. node 8049's neighbours = [9818]), i.e.
+        book-book edges, since History has no N8 for an N7-N8 bipartite
+        version. Externally-provided graph structure — may correlate with
+        category/price (that's the point of a GNN), but is NOT a C4 leak
+        since we did not derive it FROM the label (see structural_notes for
+        the C4 boundary).
+    E11a:
+      name: semantic_similarity
+      concrete_meaning: >
+        Cosine similarity (thresholded) on T-fidelity embeddings. For N7:
+        book_embeddings / book_embeddings_contextual (title / title+
+        description). For N9: category_embeddings (mean-pooled T12b book
+        title embeddings per category) — meaningful, not degenerate, since
+        these are real text embeddings rather than raw category-name strings.
+    E11b:
+      name: structural_similarity
+      concrete_meaning: >
+        Edges based on degree/centrality similarity between nodes (e.g.
+        connect books with similar neighbour-count in the base graph).
+    E11c:
+      name: functional_similarity
+      concrete_meaning: >
+        Similarity-form edges connecting books that share aggregate_id
+        (same construction as E10a, framed as a similarity graph rather than
+        a GT-labeled one). N7 only. Same C4 issue as E10a for M1 — see
+        remove_list.
+
+  T:
+    T12a:
+      name: contextual
+      concrete_meaning: >
+        text_fidelity_a = book title + description, e.g. "War and Secession:
+        Pakistan, India, and the Creation of Bangladesh A political study set
+        in a framework of oral history, this book outlines..."
+    T12b:
+      name: standard
+      concrete_meaning: >
+        text_fidelity_b = book title only, e.g. "War and Secession: Pakistan,
+        India, and the Creation of Bangladesh" — the entity's own name,
+        nothing else.
+    T12e:
+      name: baseline
+      concrete_meaning: "Empty string '' — not stored, used directly downstream."
+
+# ─────────────────────────────────────────────────────────────────────────
+# STRUCTURAL NOTES (constraints beyond C1-C4, specific to this dataset)
+# ─────────────────────────────────────────────────────────────────────────
+structural_notes:
+  - "C4 boundary: C4 excludes edge constructions WE DERIVE that are
+     definitionally/tautologically equivalent to the prediction target
+     (e.g. E10a 'connect same-category nodes' when predicting category).
+     It does NOT exclude externally-provided graph structure (E10c) that
+     may merely CORRELATE with the label — exploiting such correlation is
+     the standard purpose of a GNN, not a leak."
+  - "E10a and E11c are defined only for N7 (book) nodes. 'Same category' /
+     'shared category' is undefined for N9 (category) nodes, since N9 nodes
+     ARE categories — there is no second axis to compare against."
+  - "M1 + N9 is excluded entirely: for an N9 (category) node, categorical_label
+     would just be the node's own identity (tautological/trivial), not a
+     meaningful prediction target. M5/M6 + N9 ARE included, since global
+     graph metrics (density) are well-defined regardless of node granularity."
+  - "E10b is deliberately defined via pure neighbour-list co-occurrence
+     counts — no reference to category or price — specifically so it remains
+     valid for M1 (category), M2/M4 (price), and M3 (same-category) without
+     C4 leakage in any of them."
+
+# ─────────────────────────────────────────────────────────────────────────
+# OMEGA* — valid (N, E) combinations per M
+# ─────────────────────────────────────────────────────────────────────────
+variants:
+  M1:  # node categorical — N7 only. E10a/E11c excluded (direct C4: categorical_label == encode(aggregate_id))
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+
+  M2:  # node scalar — N7 and N9
+    - {N: N7, E: E10a}
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+    - {N: N7, E: E11c}
+    - {N: N9, E: E10b}
+    - {N: N9, E: E10c}
+    - {N: N9, E: E11a}
+    - {N: N9, E: E11b}
+
+  M3:  # edge categorical — N7 only, GT edges only (C2), E10a excluded (C4)
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+
+  M4:  # edge scalar — N7 only, GT edges only (C2), E10a excluded (no natural scalar label)
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+
+  M5:  # global categorical — same (N,E) space as M2 (no label leakage concerns for global metrics)
+    - {N: N7, E: E10a}
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+    - {N: N7, E: E11c}
+    - {N: N9, E: E10b}
+    - {N: N9, E: E10c}
+    - {N: N9, E: E11a}
+    - {N: N9, E: E11b}
+
+  M6:  # global scalar — same (N,E) space as M5
+    - {N: N7, E: E10a}
+    - {N: N7, E: E10b}
+    - {N: N7, E: E10c}
+    - {N: N7, E: E11a}
+    - {N: N7, E: E11b}
+    - {N: N7, E: E11c}
+    - {N: N9, E: E10b}
+    - {N: N9, E: E10c}
+    - {N: N9, E: E11a}
+    - {N: N9, E: E11b}
+
+# ─────────────────────────────────────────────────────────────────────────
+# REMOVE LIST — applied during enumeration, listed here for documentation
+# ─────────────────────────────────────────────────────────────────────────
+remove_list:
+  - rule: "(*, N8, *)"
+    reason: "C3 — N8 unavailable for this dataset (has_secondary_id: false)"
+  - rule: "(M1, N7, E10a), (M1, N7, E11c)"
+    reason: >
+      C4, DIRECT LEAK — categorical_label is a 1:1 encoding of aggregate_id
+      (confirmed empirically). E10a/E11c connect nodes sharing aggregate_id,
+      which is tautological with predicting categorical_label.
+  - rule: "(M1, N9, *)"
+    reason: "M1 at category-node granularity is tautological/trivial — see structural_notes"
+  - rule: "(*, N9, E10a), (*, N9, E11c)"
+    reason: "structural — 'same/shared category' undefined when nodes ARE categories — see structural_notes"
+  - rule: "(M3, N7, E10a), (M4, N7, E10a)"
+    reason: "C4 (M3) — E10a directly encodes the M3 same-category label; (M4) E10a binary GT edges have no natural scalar label"
+  - rule: "(M3, *, E11*), (M4, *, E11*)"
+    reason: "C2 — similarity edges (E11a/E11b/E11c) carry no edge-level supervision signal"
+
+# ─────────────────────────────────────────────────────────────────────────
+# SUMMARY
+# ─────────────────────────────────────────────────────────────────────────
+summary:
+  M1_combos: 4
+  M2_combos: 10
+  M3_combos: 2
+  M4_combos: 2
+  # M5/M6 are DERIVED post-hoc from M1/M2 training runs (no additional training).
+  # M5 Aggregate_Gap = TVD(true_dist, pred_dist) over M1 test nodes.
+  # M6 Aggregate_Gap = abs(mean_true - mean_pred) over M2 test nodes.
+  # Combo counts mirror M1/M2 exactly (one derived row per training run).
+  M5_combos: 4   # mirrors M1
+  M6_combos: 10  # mirrors M2
+  text_levels: 3
+  # Independent training runs (M1–M4 only):
+  runnable_MNE_combos: 18
+  runnable_variants: 54
+  # Total output rows including derived M5/M6:
+  total_MNE_combos: 32
+  total_variants: 96
