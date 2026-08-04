@@ -160,9 +160,30 @@ def plot_tree_categorical(
     depth    = tree_model.get_depth()
     node_x   = _leaf_positions(tree_model)
 
-    FIG_W = max(14, 3.0 * n_leaves)
-    FIG_H = max(8,  2.8 * (depth + 1))
-    fig, ax = plt.subplots(figsize=(min(FIG_W, 68), FIG_H))
+    # Relative colour scale: normalise to the tree's actual min/max
+    _all_vals = [float(t.value[node][0][0]) for node in range(t.node_count)]
+    _vmin, _vmax = min(_all_vals), max(_all_vals)
+    _vrange = _vmax - _vmin if _vmax > _vmin else 1.0
+
+    def _norm(v: float) -> float:
+        return max(0.0, min(1.0, (v - _vmin) / _vrange))
+
+    def _lc(v):   # leaf fill
+        g = 0.08 + _norm(v) * 0.87
+        return (g, g, g, 1.0)
+
+    def _ltc(v):  # leaf text
+        return 'white' if _norm(v) < 0.55 else '#1a1a1a'
+
+    def _ic(v):   # internal fill
+        return plt.colormaps['YlOrBr'](0.15 + _norm(v) * 0.72)
+
+    def _itc(v):  # internal text
+        return 'white' if _norm(v) > 0.72 else '#1a1a1a'
+
+    FIG_W = max(40, 9.0 * n_leaves)
+    FIG_H = max(20, 8.0 * (depth + 1))
+    fig, ax = plt.subplots(figsize=(FIG_W, FIG_H))
 
     MARGIN = 0.7
     ax.set_xlim(-MARGIN, n_leaves - 1 + MARGIN)
@@ -181,12 +202,12 @@ def plot_tree_categorical(
             ax.text(
                 x, y, f'{val:.0f}%',
                 ha='center', va='center',
-                fontsize=15, fontweight='bold',
-                color=_leaf_text_color(val),
+                fontsize=30, fontweight='bold',
+                color=_ltc(val),
                 bbox=dict(
-                    boxstyle='round,pad=0.55',
-                    facecolor=_leaf_color(val),
-                    edgecolor='#888888', linewidth=1.4,
+                    boxstyle='round,pad=1.1',
+                    facecolor=_lc(val),
+                    edgecolor='#888888', linewidth=2.8,
                 ),
                 zorder=3,
             )
@@ -201,13 +222,13 @@ def plot_tree_categorical(
             ax.text(
                 x, y, label,
                 ha='center', va='center',
-                fontsize=9, fontweight='bold',
-                color=_internal_text_color(val),
-                linespacing=1.55,
+                fontsize=28, fontweight='bold',
+                color=_itc(val),
+                linespacing=1.6,
                 bbox=dict(
-                    boxstyle='round,pad=0.6',
-                    facecolor=_internal_color(val),
-                    edgecolor='#555555', linewidth=1.6,
+                    boxstyle='round,pad=2.0',
+                    facecolor=_ic(val),
+                    edgecolor='#555555', linewidth=4.0,
                 ),
                 zorder=3,
             )
@@ -228,9 +249,9 @@ def plot_tree_categorical(
 
             def edge_label(tx, ty, text, ha):
                 ax.text(tx, ty, text, ha=ha, va='center',
-                        fontsize=9, fontstyle='italic', color='#333333',
+                        fontsize=24, fontstyle='italic', color='#333333',
                         bbox=dict(facecolor='white', edgecolor='none',
-                                  alpha=0.85, pad=1.5),
+                                  alpha=0.85, pad=4.0),
                         zorder=4)
 
             edge_label(x + (lx - x) * 0.35 - 0.07,
@@ -243,35 +264,10 @@ def plot_tree_categorical(
 
     draw(0, 0)
 
-    # ── title + horizontal colour bars ────────────────────────────────────────
-    # Leave headroom at the top for title + two bars; tree fills the rest.
-    TOP = 0.88
-    plt.subplots_adjust(top=TOP, bottom=0.02, left=0.02, right=0.98)
-
-    fig.suptitle(title, fontsize=15, fontweight='bold', y=0.985, va='top')
-
-    v256 = np.linspace(0, 1, 256)
-
-    # Internal node amber bar
-    cb1 = fig.add_axes([0.10, TOP + 0.025, 0.35, 0.022])
-    img1 = np.array([[plt.colormaps['YlOrBr'](0.15 + v * 0.72) for v in v256]])
-    cb1.imshow(img1, aspect='auto')
-    cb1.set_yticks([])
-    cb1.set_xticks([0, 127, 255])
-    cb1.set_xticklabels(['0%', '50%', '100%'], fontsize=8)
-    cb1.set_title('Internal node mean score', fontsize=8.5, pad=3)
-
-    # Leaf grayscale bar
-    cb2 = fig.add_axes([0.55, TOP + 0.025, 0.35, 0.022])
-    img2 = np.array([[(0.08 + v * 0.87,) * 3 + (1.0,) for v in v256]])
-    cb2.imshow(img2, aspect='auto')
-    cb2.set_yticks([])
-    cb2.set_xticks([0, 127, 255])
-    cb2.set_xticklabels(['0%', '50%', '100%'], fontsize=8)
-    cb2.set_title('Leaf predicted score', fontsize=8.5, pad=3)
+    plt.subplots_adjust(top=0.98, bottom=0.02, left=0.02, right=0.98)
 
     if out_path:
-        fig.savefig(out_path, dpi=150, bbox_inches='tight', facecolor='white')
+        fig.savefig(out_path, dpi=250, bbox_inches='tight', facecolor='white')
         print(f'\n  Saved → {out_path}')
     if open_fig:
         subprocess.run(['open', str(out_path)], check=False)
