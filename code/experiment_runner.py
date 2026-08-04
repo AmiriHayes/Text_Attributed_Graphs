@@ -32,7 +32,7 @@ import numpy as np
 N_TRAIN_SAMPLES = 10   # default; override via CLI --n_train_samples
 N_TEST_SAMPLES  = 10   # default; override via CLI --n_test_samples
 
-DATASETS = ['arxiv', 'amazon', 'history']
+DATASETS = ['arxiv', 'amazon', 'history', 'electronics', 'toys']
 
 # Map M-code to trainer task_type string
 M_TO_TASK_TYPE = {
@@ -158,7 +158,14 @@ class ExperimentRunner:
         self.n_test_samples  = n_test_samples
 
         import torch
-        self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
+        if device:
+            self.device = device
+        elif torch.cuda.is_available():
+            self.device = 'cuda'
+        elif torch.backends.mps.is_available():
+            self.device = 'mps'
+        else:
+            self.device = 'cpu'
 
         self.logger = _setup_logging(self.output_path)
 
@@ -231,8 +238,8 @@ class ExperimentRunner:
                             f"(>{MAX_EDGES:,}) — writing degenerate rows"
                         )
                         all_keys = (
-                            [('train', i) for i in range(N_TRAIN_SAMPLES)] +
-                            [('test',  i) for i in range(N_TEST_SAMPLES)]
+                            [('train', i) for i in range(self.n_train_samples)] +
+                            [('test',  i) for i in range(self.n_test_samples)]
                         )
                         for split_name, sample_idx in all_keys:
                             resume_key = (M, N, E, T, split_name, sample_idx)
