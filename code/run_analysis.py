@@ -39,15 +39,15 @@ from decision_tree_analysis import (
 #   (a) {run_dir}/{dataset}/construction_performance_table_{dataset}.csv  (older runs)
 #   (b) {run_dir}/construction_performance_table_{dataset}.csv            (flat layout)
 DATASET_RUNS: dict[str, Path] = {
-    'history':     Path('output/run_final'),
-    'amazon':      Path('output/run_final'),
-    'arxiv':       Path('output/run_final'),
-    'electronics': Path('output/run_final'),
-    'toys':        Path('output/run_final'),
+    'history':     Path('output/run_clean_20260730'),
+    'amazon':      Path('output/run_clean_20260730'),
+    'arxiv':       Path('output/run_clean_20260730'),
+    'electronics': Path('output/run_clean_20260730'),
+    'toys':        Path('output/run_clean_20260730'),
 }
 
 OUT_DIR   = Path('output/analysis')
-SCORE_COL = 'Final_Score'
+SCORE_COL = 'S_GNN_step1'
 
 DATASETS = ['history', 'amazon', 'arxiv', 'electronics', 'toys']
 
@@ -144,6 +144,10 @@ def _build_summary(
             excluded_zero.append(vdict)
             continue
 
+        # Scale to 0–100 so plot_tree_categorical leaf labels display correctly
+        train_mean *= 100.0
+        test_mean  *= 100.0
+
         rows.append({
             **vdict,
             'task_type':     grp['task_type'].iloc[0] if 'task_type' in grp.columns else '',
@@ -218,8 +222,8 @@ def _build_per_sample_summaries(
             rows.append({
                 **vdict,
                 'task_type':  grp['task_type'].iloc[0] if 'task_type' in grp.columns else '',
-                'train_mean': t_mean,
-                'test_mean':  e_mean,
+                'train_mean': t_mean * 100.0,
+                'test_mean':  e_mean * 100.0,
             })
         if rows:
             per_sample[int(sample_idx)] = pd.DataFrame(rows)
