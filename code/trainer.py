@@ -37,7 +37,7 @@ class GNNTrainer:
       'edge_scalar'      — M4: MSELoss, mae/mse/r2, edge masks
     """
 
-    def __init__(self, model, device: str = 'cuda' if torch.cuda.is_available() else 'cpu',
+    def __init__(self, model, device: str = 'mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'cpu'),
                  lr: float = 0.001, weight_decay: float = 5e-4,
                  epochs: int = 200, patience: int = 50,
                  task_type: str = 'categorical'):
@@ -231,6 +231,7 @@ class GNNTrainer:
         Returns:
             Test metrics dict
         """
+        data = data.to(self.device)
         no_improve_count = 0
 
         epoch_log_fields = {
