@@ -34,8 +34,8 @@ import seaborn as sns
 # ── Config ─────────────────────────────────────────────────────────────────────
 
 DATASETS     = ['history', 'amazon', 'arxiv', 'electronics', 'toys']
-RUN_FINAL    = Path('output/run_clean_20260730')
-OUT_DIR      = Path('output/analysis')
+RUN_FINAL    = Path('output/run_1000_final')
+OUT_DIR      = Path('output/run_1000_final/analysis')
 VARIANT_COLS = ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']
 
 # Held-out test samples: 20–29 for datasets with 50 samples (electronics/toys).

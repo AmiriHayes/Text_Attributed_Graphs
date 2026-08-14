@@ -39,14 +39,14 @@ from decision_tree_analysis import (
 #   (a) {run_dir}/{dataset}/construction_performance_table_{dataset}.csv  (older runs)
 #   (b) {run_dir}/construction_performance_table_{dataset}.csv            (flat layout)
 DATASET_RUNS: dict[str, Path] = {
-    'history':     Path('output/run_clean_20260730'),
-    'amazon':      Path('output/run_clean_20260730'),
-    'arxiv':       Path('output/run_clean_20260730'),
-    'electronics': Path('output/run_clean_20260730'),
-    'toys':        Path('output/run_clean_20260730'),
+    'history':     Path('output/run_1000_final'),
+    'amazon':      Path('output/run_1000_final'),
+    'arxiv':       Path('output/run_1000_final'),
+    'electronics': Path('output/run_1000_final'),
+    'toys':        Path('output/run_1000_final'),
 }
 
-OUT_DIR   = Path('output/analysis')
+OUT_DIR   = Path('output/run_1000_final/analysis')
 SCORE_COL = 'S_GNN_step1'
 
 DATASETS = ['history', 'amazon', 'arxiv', 'electronics', 'toys']

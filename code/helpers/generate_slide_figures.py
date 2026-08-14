@@ -9,7 +9,7 @@ import matplotlib.colors as mcolors
 import pandas as pd
 from pathlib import Path
 
-OUT = Path("output/run_clean_20260730/analysis/slides")
+OUT = Path("output/run_1000_final/analysis/slides")
 OUT.mkdir(parents=True, exist_ok=True)
 
 DATASETS = ["History", "Amazon", "ArXiv", "Electronics", "Toys"]
@@ -71,8 +71,8 @@ print(f"Saved: {OUT / 'strategy1_rho_comparison.png'}")
 
 # ── 2. Cross-dataset transfer heatmap ─────────────────────────────────────
 # Table B = ArXiv M2/M6 excluded symmetrically (clean), from run_clean_20260730
-rho_df = pd.read_csv("output/analysis/cross_dataset_3x3_clean_rho.csv", index_col=0)
-p_df   = pd.read_csv("output/analysis/cross_dataset_3x3_clean_p.csv",   index_col=0)
+rho_df = pd.read_csv("output/run_1000_final/analysis/cross_dataset_3x3_clean_rho.csv", index_col=0)
+p_df   = pd.read_csv("output/run_1000_final/analysis/cross_dataset_3x3_clean_p.csv",   index_col=0)
 
 # Short names matching index/columns
 short = {"history": "Hist", "amazon": "Amzn", "arxiv": "ArXv", "electronics": "Elec", "toys": "Toys"}
