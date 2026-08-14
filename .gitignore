@@ -33,11 +33,14 @@ tag_variants_analysis.ipynb
 case_tree.png
 
 # Raw dataset directories (too large for GitHub)
-data/amazon/
-data/arxiv/
-data/history/
+# train splits — large raw data, not needed post-analysis
+data/amazon/train/
+data/arxiv/train/
+data/history/train/
 data/electronics/train/
 data/toys/train/
+# pre-computed embeddings (.npy) — regeneratable from raw text + SBERT, several >100MB
+data/*/test/embeddings/
 
 # Logs and temp files
 logs/
