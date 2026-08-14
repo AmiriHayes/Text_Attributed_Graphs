@@ -34,7 +34,7 @@ import seaborn as sns
 # ── Config ─────────────────────────────────────────────────────────────────────
 
 DATASETS     = ['history', 'amazon', 'arxiv', 'electronics', 'toys']
-RUN_FINAL    = Path('output/run_final')
+RUN_FINAL    = Path('output/run_clean_20260730')
 OUT_DIR      = Path('output/analysis')
 VARIANT_COLS = ['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']
 
@@ -59,7 +59,9 @@ PANELS = [
 
 def load(dataset: str) -> pd.DataFrame:
     path = RUN_FINAL / f'construction_performance_table_{dataset}.csv'
-    return pd.read_csv(path)
+    df = pd.read_csv(path)
+    df['sample_idx'] = pd.to_numeric(df['sample_idx'], errors='coerce').astype('Int64')
+    return df
 
 
 def variant_label(row) -> str:
@@ -100,9 +102,7 @@ def build_pivot(
 
 def compute_row_order(df: pd.DataFrame, samples: list) -> list:
     """
-    Sort variants by mean unclamped_score (test, samples 20-29) descending.
-    Variants already have unclamped_score in run_final (stored as fraction×100 by trainer,
-    or as raw fraction for pre-populated rows — normalise to ×100 display scale).
+    Sort variants by Task_Idx (M1→M6), then Node_Idx, Edge_Idx, Text_Idx within task.
     """
     sub = df[
         (df['run_split'] == 'test') &
@@ -110,15 +110,12 @@ def compute_row_order(df: pd.DataFrame, samples: list) -> list:
     ].copy()
 
     sub['variant'] = sub.apply(variant_label, axis=1)
-
-    # unclamped_score: trainer stores as fraction (same scale as Final_Score, i.e. [−1, 1])
-    # multiply by 100 for display, then rank
-    means = (
-        sub.groupby('variant')['unclamped_score']
-        .mean()
-        .fillna(-999)
+    meta = (
+        sub[['variant', 'Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx']]
+        .drop_duplicates('variant')
+        .sort_values(['Task_Idx', 'Node_Idx', 'Edge_Idx', 'Text_Idx'])
     )
-    return list(means.sort_values(ascending=False).index)
+    return list(meta['variant'])
 
 
 # ── Plotter ────────────────────────────────────────────────────────────────────
@@ -143,13 +140,13 @@ def plot_ablation(dataset: str, df: pd.DataFrame):
         return
 
     x_label = f'{samples[0]}–{samples[-1]}'
-    fig_h = max(10, n_var * 0.30)
-    fig_w = 3 * max(6, n_samp * 0.6) + 1.5   # three panels + spacing
+    fig_h = max(5, n_var * 0.16)
+    fig_w = 3 * max(8, n_samp * 0.85) + 2.0  # three panels + spacing
 
     fig = plt.figure(figsize=(fig_w, fig_h), facecolor='white')
     fig.suptitle(
         f'{dataset.title()} — Ablation Scoring Comparison\n'
-        f'Y: variants sorted by mean non-clamped score  |  test samples {x_label}',
+        f'Y: variants sorted by M1→M6 task type, then Node/Edge/Text  |  test samples {x_label}',
         fontsize=13, fontweight='bold', y=0.995,
     )
 
