@@ -393,7 +393,17 @@ def _m4_inspection(summary: pd.DataFrame, tree_train_res: dict) -> str:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--open', dest='open_fig', action='store_true')
+    parser.add_argument('--run-dir', default=None,
+                         help='Run directory containing construction_performance_table_*.csv '
+                              '(flat layout). Defaults to the hardcoded DATASET_RUNS/OUT_DIR '
+                              '(output/run_1000_final) when omitted.')
     args = parser.parse_args()
+
+    global DATASET_RUNS, OUT_DIR
+    if args.run_dir:
+        run_dir = Path(args.run_dir)
+        DATASET_RUNS = {ds: run_dir for ds in DATASETS}
+        OUT_DIR = run_dir / 'analysis'
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
