@@ -1,6 +1,19 @@
 """
-Variant Registry for TAG Construction
-Loads and validates variant configurations from YAML files.
+Enumerates valid (M, N, E, T) TAG variant combinations for a dataset by
+reading its {dataset}_variants.yaml (allowed N/E per task, remove_list rules)
+and {dataset}_dataset.yaml (e.g. has_secondary_id gating N8 availability).
+
+Reads:
+  - data/configs/{dataset}_variants.yaml
+  - data/configs/{dataset}_dataset.yaml
+
+Writes:
+  - Nothing.
+
+Usage:
+  Not run directly. Instantiated by code/experiment_runner.py as
+  VariantRegistry(dataset, config_path='data/configs') and iterated via
+  registry.enumerate_variants().
 """
 
 import re

@@ -1,6 +1,21 @@
 """
-Edge Factory for TAG Construction
-Builds edges based on edge type (E10a-E11c) and node type.
+Builds the edge list for a given (edge_type, node_type) pair, dispatching
+dataset-specific edge shape via config flags read from the dataset's YAML
+(secondary_id_is_list, has_structural_edges, has_secondary_id) rather than
+branching on dataset name. E11c is deprecated (raises NotImplementedError —
+see code/AUDIT_pre_publication.md FIX 1); E11b's k defaults to 5, overridable
+via the k_structural kwarg (see FIX 3).
+
+Reads:
+  - Nothing directly — operates on an in-memory DataFrame (df) and
+    data_manager.config already loaded by the caller.
+
+Writes:
+  - Nothing.
+
+Usage:
+  Not run directly. Called by code/tag_constructor.py's
+  TAGConstructor.construct() via EdgeFactory.build_edges(...).
 """
 
 import numpy as np
@@ -51,12 +66,52 @@ class EdgeFactory:
         
         elif edge_type == 'E11b':
             base_graph = kwargs.get('base_graph')
-            return EdgeFactory._build_structural_similarity(node_list, base_graph)
+            k = kwargs.get('k_structural', 5)
+            return EdgeFactory._build_structural_similarity(node_list, base_graph, k=k)
         
         elif edge_type == 'E11c':
-            # Functional similarity: same as E10a but framed as similarity
-            return EdgeFactory._build_categorical_gt(df, node_type, node_list)
-        
+            # DEPRECATED (pre-publication audit, see code/AUDIT_pre_publication.md
+            # FIX 1). E11c was documented as "functional similarity based on node
+            # categories" but the implementation called _build_categorical_gt --
+            # the exact same function as E10a, with the same arguments. Every
+            # E11c graph was byte-identical to its E10a counterpart.
+            #
+            # A genuinely distinct E11c (soft/hierarchical grouping one level
+            # above categorical_label) was considered and rejected as
+            # intractable without new data engineering:
+            #   - ArXiv/History: categorical_label already IS the top-level/
+            #     root category (confirmed in {dataset}_variants.yaml) -- there
+            #     is no coarser level in the current per-sample schema to group
+            #     by. The raw multi-level ArXiv 'categories' string and any
+            #     Amazon meta category level above l3_cat are not present in
+            #     the sample jsonl schema; building a hierarchy would require
+            #     re-parsing upstream source data.
+            #   - In practice this is moot for ArXiv/History anyway: every
+            #     variants.yaml already excludes E10a/E11c from M1 for these
+            #     two datasets as a direct C4 label leak, so E11c never
+            #     survived as a distinct M1 variant there to begin with.
+            #   - Amazon/Electronics/Toys: E11c survives only for (M1, N8) --
+            #     3 variants per dataset (one per text fidelity), 9 total
+            #     across the project. A coarser category level than l3_cat
+            #     exists in the raw Amazon meta 'categories' list (index 0/1
+            #     vs. the index 2 used for l3_cat) but extracting it requires
+            #     re-streaming the same meta_url with a new cache -- a data
+            #     fetch, not a code fix, and out of scope here per the audit's
+            #     own fallback clause.
+            #
+            # Per that fallback clause: E11c is deprecated rather than left as
+            # a silent alias. Raise loudly so any caller still requesting it
+            # is forced to notice, instead of silently getting E10a's graph
+            # under a different label.
+            raise NotImplementedError(
+                "E11c is deprecated (pre-publication audit FIX 1): the previous "
+                "implementation was an undocumented alias for E10a (identical "
+                "edges, not merely similar). It has been removed rather than "
+                "kept as a silent duplicate. See code/AUDIT_pre_publication.md "
+                "FIX 1 for the full reasoning and remove E11c rows from "
+                "{dataset}_variants.yaml before use."
+            )
+
         else:
             raise ValueError(f"Unknown edge_type: {edge_type}")
     
@@ -430,9 +485,16 @@ class EdgeFactory:
     
     @staticmethod
     def _build_semantic_similarity(node_list: List, embeddings: np.ndarray,
-                                   threshold: float = 0.75) -> List[Tuple]:
+                                   threshold: float = 0.75, chunk_size: int = 1000) -> List[Tuple]:
         """
         E11a: Semantic similarity edges based on cosine similarity.
+
+        Computed in row-chunks rather than materializing the full N x N
+        dense matrix — mathematically identical to the dense version (same
+        cosine threshold, same strict-upper-triangle semantics, no
+        approximation), just memory-bounded. At N=50k the full dense
+        float64 matrix would be ~20GB; chunked at chunk_size=1000, peak
+        memory per chunk is ~1000 x N x 8 bytes (~400MB at N=50k).
         """
         # Replace NaN/inf and guard zero-norm rows
         embeddings = np.nan_to_num(embeddings, nan=0.0, posinf=0.0, neginf=0.0)
@@ -440,45 +502,115 @@ class EdgeFactory:
         norms = np.where(norms == 0, 1.0, norms)
         embeddings = (embeddings / norms).astype(np.float64)
 
+        n = embeddings.shape[0]
+        edges = []
         # For unit-norm vectors cosine similarity == dot product.
         # np.errstate suppresses spurious BLAS FP-exception flags.
         with np.errstate(divide='ignore', over='ignore', under='ignore', invalid='ignore'):
-            sim_matrix = embeddings @ embeddings.T
+            for start in range(0, n, chunk_size):
+                end = min(start + chunk_size, n)
+                chunk = embeddings[start:end]        # (rows, dim)
+                rest = embeddings[start:]            # (n-start, dim) — only columns
+                                                      # j>=start can ever satisfy j>i for i>=start
+                sim_chunk = chunk @ rest.T            # (rows, n-start)
 
-        # Vectorized upper-triangle extraction (avoids O(n²) Python loop)
-        i_idx, j_idx = np.where(np.triu(sim_matrix >= threshold, k=1))
-        return [(node_list[i], node_list[j], float(sim_matrix[i, j]))
-                for i, j in zip(i_idx, j_idx)]
+                rows, cols = end - start, n - start
+                # global j > global i  <=>  local_j > local_i (both offset by `start`)
+                upper_mask = np.arange(cols)[None, :] > np.arange(rows)[:, None]
+                keep = (sim_chunk >= threshold) & upper_mask
+
+                local_i, local_j = np.where(keep)
+                for li, lj in zip(local_i, local_j):
+                    gi, gj = start + li, start + lj
+                    edges.append((node_list[gi], node_list[gj], float(sim_chunk[li, lj])))
+        return edges
 
     @staticmethod
     def _build_structural_similarity(node_list: List, base_graph: nx.Graph,
-                                     k: int = 50) -> List[Tuple]:
+                                     k: int = 5, chunk_size: int = 1000) -> List[Tuple]:
         """
         E11b: Structural similarity based on degree centrality.
         Each node is connected to its k most centrality-similar neighbors.
-        Top-k avoids degenerate near-complete graphs when centrality values
-        cluster tightly (e.g. all-low-degree nodes in sparse history graphs).
+
+        DEGENERATE CONDITION (pre-publication audit, see
+        code/AUDIT_pre_publication.md FIX 3): the previous default, k=50,
+        degenerates into a near-complete graph whenever centrality values
+        cluster tightly -- which is common, not an edge case. Centrality is
+        computed over E10b's ground-truth graph, and a large fraction of
+        nodes routinely tie at centrality=0 (no E10b edges at all): measured
+        37.5%-100% of nodes tied across the datasets checked (e.g. ArXiv N7
+        56.3% at pooled scale / 91.2% at single-sample training scale;
+        Amazon N8 100%). When most nodes are tied, "k nearest by centrality
+        difference" has no real selection criterion left -- it picks k
+        arbitrary nodes from the tied pool, and since every tied node does
+        this independently, the union of edges balloons. At k=50 this
+        produced graphs 100-650x denser than E10b/E11a on the same node set
+        (e.g. ArXiv N7: 447,618 edges vs. E10b's 4,021 and E11a's 692).
+        Critically, this floor cannot be tuned away with a smaller k --
+        even k=1 (the sparsest a k-NN construction can be) still produces
+        roughly one edge per node when ties are this common, which is
+        already several times denser than the ground-truth/similarity edge
+        types.
+
+        EMPIRICALLY VALIDATED FIX: k=5 (ArXiv, N7, T12a, pooled 9,178-node
+        graph). Edge count: 447,618 (k=50) -> 45,686 (k=5), a 90% reduction.
+        Validation experiment (see AUDIT_pre_publication.md FIX 3 for full
+        detail):
+          - raw_gnn (GraphSAGE, M1, n=10 samples): k=50 mean=55.79 (std
+            2.62) vs. k=5 mean=54.34 (std 3.42). Welch's t-test t=-1.065,
+            p=0.302 (NOT significant), Cohen's d=-0.476. Sparsification
+            does not measurably change GNN node-classification performance.
+          - RAGAS composite (text-based GraphRAG, n=20 questions): k=50
+            mean=0.359 vs. k=5 mean=0.639 (+0.28 absolute). This moves E11b
+            from a catastrophic outlier (roughly half of every other edge
+            type's score) to just below the bottom of the normal range
+            (0.639 vs. 0.687-0.719 for E10b/E10c/E11a on the same node
+            type).
+          - Interpretation: raw_gnn is blind to this construction failure
+            mode; RAGAS/retrieval quality is highly sensitive to it. This
+            is one dataset/node-type/text-fidelity combination -- treat as
+            a validated pilot, not a five-dataset confirmation, until
+            replicated elsewhere (Amazon N8 is the natural next check,
+            given its centrality ties were the most severe observed, 100%).
+
+        k is configurable via the `k_structural` kwarg (see
+        EdgeFactory.build_edges) so future users/datasets can retune it;
+        defaults to 5 here to match the validated fix.
+
+        Computed in row-chunks rather than materializing the full N x N
+        dense diff matrix — same brute-force per-row k-nearest-by-
+        centrality-difference result as the dense version (argpartition is
+        still applied against the FULL centrality array for each row, only
+        the row axis is chunked), just memory-bounded. At N=50k the full
+        dense float64 diff matrix would be ~20GB; chunked at
+        chunk_size=1000, peak memory per chunk is ~1000 x N x 8 bytes
+        (~400MB at N=50k).
         """
         degree_cent = nx.degree_centrality(base_graph)
         cents = np.array([degree_cent.get(n, 0.0) for n in node_list], dtype=np.float64)
         n = len(node_list)
         k = min(k, n - 1)
 
-        diff = np.abs(cents[:, None] - cents[None, :])
-        np.fill_diagonal(diff, np.inf)
-
-        # Indices of k smallest diffs per node (not sorted, but that's fine)
-        knn = np.argpartition(diff, k, axis=1)[:, :k]
-
         seen = set()
         edges = []
-        for i in range(n):
-            for j in knn[i]:
-                key = (min(i, j), max(i, j))
-                if key not in seen:
-                    seen.add(key)
-                    sim = float(max(0.0, 1.0 - diff[i, j]))
-                    edges.append((node_list[i], node_list[j], sim))
+        for start in range(0, n, chunk_size):
+            end = min(start + chunk_size, n)
+            chunk_cents = cents[start:end]                                # (rows,)
+            diff_chunk = np.abs(chunk_cents[:, None] - cents[None, :])    # (rows, n)
+
+            local_rows = np.arange(end - start)
+            diff_chunk[local_rows, start + local_rows] = np.inf           # exclude self
+
+            knn_chunk = np.argpartition(diff_chunk, k, axis=1)[:, :k]     # (rows, k)
+
+            for li, row_knn in enumerate(knn_chunk):
+                i = start + li
+                for j in row_knn:
+                    key = (min(i, j), max(i, j))
+                    if key not in seen:
+                        seen.add(key)
+                        sim = float(max(0.0, 1.0 - diff_chunk[li, j]))
+                        edges.append((node_list[i], node_list[j], sim))
         return edges
 
 # Made with Bob

@@ -1,16 +1,29 @@
 #!/usr/bin/env python3
 """
-generate_report_figures.py — All supplementary report figures from run_final/.
+Renders 8 supplementary report figures (variant bar charts, feature
+importance, cross-dataset rho/TED tables, band accuracy, Strategy-1 summary)
+by refitting decision trees on construction_performance_table CSVs.
 
-Outputs (all to output/analysis/):
-  fig_01_variant_barcharts.png      — Variant mean score bar chart per dataset
-  fig_02_feature_importance.png     — Feature importance for all 6 trees
-  fig_03_rho_table.png              — 5×5 ρ table with significance markers
-  fig_04_ted_table.png              — 5×5 normalized TED table
-  fig_05_rho_ted_scatter.png        — Joint ρ/TED scatter (off-diagonal cells)
-  fig_06_per_task_rho.png           — Per-task-type ρ breakdown (5 datasets × task)
-  fig_07_band_accuracy.png          — Band accuracy grouped bar + overall ρ overlay
-  fig_08_strategy1_summary.png      — Strategy-1 validation summary table figure
+NOTE: RUN_FINAL below points at output/run_final/, which does not currently
+exist in this repo (see code/AUDIT_yaml_hardcoding.md, MODERATE finding #3) —
+running this file as-is will fail at the first load() call until RUN_FINAL is
+pointed at an existing run directory (e.g. output/run_1000_final).
+
+Reads:
+  - output/run_final/construction_performance_table_{dataset}.csv
+    (for history, amazon, arxiv, electronics, toys)
+  - output/analysis/cross_dataset_3x3_with_{rho,p}.csv (for fig_03/04/05,
+    produced by code/run_analysis.py)
+
+Writes:
+  - output/analysis/fig_01_variant_barcharts.png
+  - output/analysis/fig_02_feature_importance.png
+  - output/analysis/fig_03_rho_table.png
+  - output/analysis/fig_04_ted_table.png
+  - output/analysis/fig_05_rho_ted_scatter.png
+  - output/analysis/fig_06_per_task_rho.png
+  - output/analysis/fig_07_band_accuracy.png
+  - output/analysis/fig_08_strategy1_summary.png
 
 Usage:
     python3 code/generate_report_figures.py

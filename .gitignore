@@ -36,6 +36,12 @@ case_tree.png
 data/*/train/embeddings/
 data/*/test/embeddings/
 
+# Cached GraphRAG .pt graphs — regeneratable in seconds via TAGConstructor
+# from raw data + the embeddings above (see rebuild_n8_corrected*.py /
+# run_stability_study_step1.py). 2.6GB total; one file (decile_1.pt) is
+# 160MB, over GitHub's 100MB hard per-file push limit.
+data/graphrag/graphs/
+
 # Logs and temp files
 logs/
 *.log

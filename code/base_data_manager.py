@@ -1,6 +1,18 @@
 """
-Base Data Manager Interface for TAG Construction
-Defines abstract interface for loading and accessing dataset elements.
+Abstract base class defining the interface every dataset-specific data manager
+(currently only GenericDataManager) must implement to load raw data, node
+lists, text, embeddings, and labels for TAG construction.
+
+Reads:
+  - Nothing directly — pure abstract interface, no I/O of its own.
+
+Writes:
+  - Nothing.
+
+Usage:
+  Not run directly. Subclassed by code/generic_data_manager.py's
+  GenericDataManager, which is what experiment_runner.py actually
+  instantiates.
 """
 
 from abc import ABC, abstractmethod

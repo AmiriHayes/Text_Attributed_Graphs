@@ -1,6 +1,22 @@
 """
-Label Factory for TAG Construction
-Generates labels based on task type (M1-M6).
+Generates node/edge labels for a given task type (M1-M4; M5/M6 are derived
+elsewhere, post-hoc, in trainer.py) by dispatching on task_type and node_type,
+with M1's category scheme read from YAML (m1_meta_url) rather than hardcoded.
+
+Reads:
+  - code/derived/{dataset}_m1_category_map.json (cache, if present)
+  - code/derived/{dataset}_m1_class_names.json (cache, if present)
+  - data/{dataset}/{train,test}/raw.jsonl (streamed via data_root, only when
+    the above cache is missing and data_manager.config has m1_meta_url set)
+  - the dataset's m1_meta_url (streamed HTTP, only on a cache miss)
+
+Writes:
+  - code/derived/{dataset}_m1_category_map.json (cache, on a cache miss)
+  - code/derived/{dataset}_m1_class_names.json (cache, on a cache miss)
+
+Usage:
+  Not run directly. Called by code/tag_constructor.py's
+  TAGConstructor.construct() via LabelFactory.generate_labels(...).
 """
 
 import json

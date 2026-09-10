@@ -1,17 +1,22 @@
 """
-Global Trainer — TAG Research
-DEPRECATED — GlobalTrainer and build_result_row_global are no longer called
-by the experiment pipeline. M5 and M6 are now derived post-hoc from M1/M2
-training runs via compute_aggregate_gap / build_derived_global_row in
-trainer.py. The original topology-based labels (avg_clustering > threshold,
-graph entropy) were found to be near-deterministic per edge type with almost
-no within-sample variance, making them uninformative about construction
-quality. The new derivation reuses the already-trained M1/M2 models and
-computes Aggregate_Gap (TVD for M5, abs mean-diff for M6) over test nodes at
-no additional training cost.
+DEPRECATED graph-level trainer for M5/M6 (global categorical/scalar tasks).
+GlobalTrainer and build_result_row_global are no longer called by the active
+pipeline — M5/M6 are now derived post-hoc from M1/M2 runs via
+compute_aggregate_gap / build_derived_global_row in trainer.py instead (the
+original topology-based labels here were near-deterministic per edge type,
+uninformative about construction quality). Kept for reference only; do not
+delete without explicit sign-off.
 
-This file is kept for reference and is not imported by the active pipeline.
-Do not delete without explicit sign-off.
+Reads:
+  - Nothing directly — trains on in-memory lists of PyG Data objects passed
+    in by the caller (experiment_runner.py's dead M5/M6 code path, itself
+    unreachable since variant_registry.py no longer enumerates M5/M6).
+
+Writes:
+  - Nothing — returns metric dicts / result-row dicts to the caller.
+
+Usage:
+  Not run directly and not imported by experiment_runner.py's active path.
 """
 
 import copy

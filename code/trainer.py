@@ -1,11 +1,24 @@
 """
-Execution Engine — TAG Research (code/ version)
-Trains GNN models on TAG Data objects and produces structured result rows.
+GNNTrainer (train/eval loop for M1-M4 node/edge tasks) plus the two-step
+scoring framework (Step 1 theoretical normalization, Step 2 empirical
+lift-over-MLP-baseline) and build_result_row/build_derived_global_row, which
+assemble the full construction_performance_table row schema per (variant,
+split, sample).
 
-Mirrors the legacy root trainer.py structure; adds:
-  - 'edge_scalar'  task type (M4)
-  - Fixed M3 masking: labels == -1 excluded via boolean mask, NOT ignore_index
-  - result_row() adapter that emits the full schema for construction_performance_table
+Reads:
+  - Nothing directly — trains on an in-memory PyG Data object passed in by
+    the caller (experiment_runner.py's TAGConstructor.construct() output).
+
+Writes:
+  - {epoch_log_path} CSV, only when GNNTrainer.train(..., epoch_log_path=...)
+    is explicitly passed a path (used by the epoch-figure scripts, e.g.
+    run_epoch_figure_arxiv.py — not used by the main experiment_runner.py
+    pipeline, which never sets epoch_log_path).
+
+Usage:
+  Not run directly. GNNTrainer is instantiated and .train()/.evaluate() are
+  called by code/experiment_runner.py and the standalone epoch-figure
+  scripts.
 """
 
 import csv
@@ -234,22 +247,36 @@ class GNNTrainer:
         data = data.to(self.device)
         no_improve_count = 0
 
+        # test_* columns only added when epoch_log_path is set: per-epoch
+        # test-mask evaluation is extra forward-pass cost with no other use
+        # (test performance is otherwise only measured once, post-training,
+        # on the restored best-val state) -- skip it for ordinary runs.
         epoch_log_fields = {
             'categorical': ['experiment_id', 'epoch', 'loss',
                             'train_kl', 'train_top1', 'train_cosine',
-                            'val_kl', 'val_top1', 'val_cosine'],
+                            'val_kl', 'val_top1', 'val_cosine',
+                            'test_kl', 'test_top1', 'test_cosine'],
             'scalar':      ['experiment_id', 'epoch', 'loss',
-                            'train_mae', 'train_r2', 'val_mae', 'val_r2'],
+                            'train_mae', 'train_r2', 'val_mae', 'val_r2',
+                            'test_mae', 'test_r2'],
             'edge_categorical': ['experiment_id', 'epoch', 'loss',
-                                 'train_acc', 'train_f1', 'val_acc', 'val_f1'],
+                                 'train_acc', 'train_f1', 'val_acc', 'val_f1',
+                                 'test_acc', 'test_f1'],
             'edge_scalar': ['experiment_id', 'epoch', 'loss',
-                            'train_mae', 'train_r2', 'val_mae', 'val_r2'],
+                            'train_mae', 'train_r2', 'val_mae', 'val_r2',
+                            'test_mae', 'test_r2'],
         }.get(self.task_type, ['experiment_id', 'epoch', 'loss'])
 
         for epoch in range(1, self.epochs + 1):
             loss = self.train_one_epoch(data)
             train_metrics = self.evaluate(data, data.train_mask, num_classes)
             val_metrics = self.evaluate(data, data.val_mask, num_classes)
+            # Per-epoch test-mask accuracy -- only computed when logging is
+            # on, since this is purely for the epoch-curve figure, not a
+            # change to the training/early-stopping/model-selection logic
+            # (best_state selection below still uses val_track, unchanged).
+            test_metrics = (self.evaluate(data, data.test_mask, num_classes)
+                             if epoch_log_path is not None else None)
 
             self.training_history.append({
                 'epoch': epoch, 'loss': loss,
@@ -262,7 +289,7 @@ class GNNTrainer:
                 write_header = not log_path.exists()
                 log_path.parent.mkdir(exist_ok=True, parents=True)
                 epoch_row = self._epoch_row(experiment_id, epoch, loss,
-                                            train_metrics, val_metrics)
+                                            train_metrics, val_metrics, test_metrics)
                 with open(log_path, 'a', newline='') as f:
                     writer = csv.DictWriter(f, fieldnames=epoch_log_fields)
                     if write_header:
@@ -313,15 +340,18 @@ class GNNTrainer:
         # categorical
         return val_metrics.get('kl', float('inf'))
 
-    def _epoch_row(self, experiment_id, epoch, loss, train_m, val_m) -> Dict:
+    def _epoch_row(self, experiment_id, epoch, loss, train_m, val_m, test_m=None) -> Dict:
         base = {'experiment_id': experiment_id or '', 'epoch': epoch,
                 'loss': round(loss, 6)}
+        test_m = test_m or {}
         if self.task_type in ('scalar', 'edge_scalar'):
             base.update({
                 'train_mae': round(float(train_m.get('mae', float('nan'))), 6),
                 'train_r2':  round(float(train_m.get('r2',  float('nan'))), 6),
                 'val_mae':   round(float(val_m.get('mae',   float('nan'))), 6),
                 'val_r2':    round(float(val_m.get('r2',    float('nan'))), 6),
+                'test_mae':  round(float(test_m.get('mae',  float('nan'))), 6),
+                'test_r2':   round(float(test_m.get('r2',   float('nan'))), 6),
             })
         elif self.task_type == 'edge_categorical':
             base.update({
@@ -329,6 +359,8 @@ class GNNTrainer:
                 'train_f1':  round(float(train_m.get('f1',       float('nan'))), 6),
                 'val_acc':   round(float(val_m.get('accuracy',   float('nan'))), 6),
                 'val_f1':    round(float(val_m.get('f1',         float('nan'))), 6),
+                'test_acc':  round(float(test_m.get('accuracy',  float('nan'))), 6),
+                'test_f1':   round(float(test_m.get('f1',        float('nan'))), 6),
             })
         else:
             base.update({
@@ -338,6 +370,9 @@ class GNNTrainer:
                 'val_kl':       round(float(val_m.get('kl',       float('nan'))), 6),
                 'val_top1':     round(float(val_m.get('top1',     float('nan'))), 6),
                 'val_cosine':   round(float(val_m.get('cosine',   float('nan'))), 6),
+                'test_kl':      round(float(test_m.get('kl',      float('nan'))), 6),
+                'test_top1':    round(float(test_m.get('top1',    float('nan'))), 6),
+                'test_cosine':  round(float(test_m.get('cosine',  float('nan'))), 6),
             })
         return base
 

@@ -1,14 +1,30 @@
 #!/usr/bin/env python3
 """
-run_analysis.py — Three-experiment TAG construction analysis (v2).
+Runs the three-experiment TAG construction analysis (per-dataset reliability,
+Strategy-1 validation, 5x5 cross-dataset generalisation) across all 5
+datasets, fitting/comparing decision trees via decision_tree_analysis.py's
+programmatic API and printing/saving the resulting rho/p/TED tables.
+
+NOTE: this docstring previously read
+"output/run_20260620/{dataset}/construction_performance_table_{dataset}.csv"
+which does not exist in this repo — corrected below to match DATASET_RUNS
+and OUT_DIR as actually defined in this file (docstring-only fix, no logic
+changed). Override both via --run-dir.
+
+Reads:
+  - output/run_1000_final/construction_performance_table_{dataset}.csv
+    (for history, amazon, arxiv, electronics, toys — see DATASET_RUNS below;
+    override the run directory for all datasets at once with --run-dir)
+
+Writes:
+  - output/run_1000_final/analysis/decision_tree_{dataset}[_clean]_combined.png
+  - output/run_1000_final/analysis/cross_dataset_3x3_{with,clean}_rho.csv
+  - output/run_1000_final/analysis/cross_dataset_3x3_{with,clean}_p.csv
+  - output/run_1000_final/analysis/cross_dataset_3x3_{with,clean}_ted.csv
 
 Usage (from repo root):
     python3 code/run_analysis.py [--open]
-
-Reads:  output/run_20260620/{dataset}/construction_performance_table_{dataset}.csv
-Writes: output/analysis/decision_tree_{dataset}_combined.png
-        output/analysis/cross_dataset_3x3_{with,clean}_rho.csv
-        output/analysis/cross_dataset_3x3_{with,clean}_p.csv
+    python3 code/run_analysis.py --run-dir output/run_post_audit [--open]
 """
 
 import argparse

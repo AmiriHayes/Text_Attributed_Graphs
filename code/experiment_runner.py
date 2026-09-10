@@ -1,7 +1,20 @@
 """
-Experiment Runner — TAG Research
-Loops over datasets, variants, splits, and samples; trains a GNN per graph;
-collects result rows; saves construction_performance_table_{dataset}.csv.
+Outer training loop: for each dataset, enumerates every valid (M, N, E, T)
+variant via VariantRegistry, builds a graph per split/sample via
+TAGConstructor, trains a GNN (+ a cached MLP baseline) per graph via
+GNNTrainer, and appends one result row per (variant, split, sample) to that
+dataset's construction_performance_table CSV — resumable via the existing
+(Task/Node/Edge/Text/split/sample_idx) keys already in the CSV.
+
+Reads:
+  - data/configs/{dataset}_dataset.yaml, data/configs/{dataset}_variants.yaml
+    (via GenericDataManager / VariantRegistry)
+  - data/{dataset}/{train,test}/samples/sample_{idx:02d}.jsonl and
+    embeddings/ (via GenericDataManager — see generic_data_manager.py)
+
+Writes:
+  - {output_path}/construction_performance_table_{dataset}.csv
+  - {output_path}/experiment_runner.log
 
 Usage (from the code/ directory or after adding code/ to sys.path):
     from experiment_runner import ExperimentRunner
@@ -9,7 +22,7 @@ Usage (from the code/ directory or after adding code/ to sys.path):
     runner.run()
 
 Or run directly:
-    python experiment_runner.py
+    python experiment_runner.py --datasets arxiv amazon --output_path output/my_run
 """
 
 import sys
@@ -64,7 +77,13 @@ def _setup_logging(output_path: Path) -> logging.Logger:
     logger.setLevel(logging.INFO)
     if not logger.handlers:
         fmt = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        fh = logging.FileHandler(output_path / 'experiment_runner.log')
+        # encoding='utf-8' fixes UnicodeEncodeError on Windows: FileHandler
+        # defaults to locale.getpreferredencoding() (cp1252 here), which
+        # can't encode box-drawing characters used in some log messages
+        # (e.g. "  └─ M5 aggregate_gap=..."). PYTHONIOENCODING
+        # does not affect FileHandler's file-open encoding, only std
+        # streams, so it didn't help despite being set at launch.
+        fh = logging.FileHandler(output_path / 'experiment_runner.log', encoding='utf-8')
         fh.setFormatter(fmt)
         ch = logging.StreamHandler(sys.stdout)
         ch.setFormatter(fmt)

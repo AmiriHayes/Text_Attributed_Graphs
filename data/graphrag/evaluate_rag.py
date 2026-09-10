@@ -39,11 +39,14 @@ SAMPLES_DIR = REPO_ROOT / 'data/arxiv/train/samples'
 GEN_MODEL = 'gpt-4o-mini'
 
 
-def load_pooled_samples(n_files=10) -> pd.DataFrame:
-    """Pool sample_00..sample_09, dedupe on primary_id."""
+def load_pooled_samples(n_files=10, dataset='arxiv') -> pd.DataFrame:
+    """Pool sample_00..sample_09, dedupe on primary_id. dataset defaults to
+    'arxiv' for backward compat; pass e.g. 'amazon' to pool that dataset's
+    train samples instead."""
+    samples_dir = REPO_ROOT / f'data/{dataset}/train/samples'
     frames = []
     for i in range(n_files):
-        path = SAMPLES_DIR / f'sample_{i:02d}.jsonl'
+        path = samples_dir / f'sample_{i:02d}.jsonl'
         frames.append(pd.read_json(path, lines=True))
     pooled = pd.concat(frames, ignore_index=True)
     pooled = pooled.drop_duplicates(subset='primary_id').reset_index(drop=True)

@@ -1,6 +1,22 @@
 """
-TAG Constructor
-Builds PyTorch Geometric Data objects from TAG variants.
+Builds a PyTorch Geometric Data object (node/edge/global task shape, with
+train/val/test masks) for one (M, N, E, T) variant, by pulling node lists,
+embeddings, edges, and labels from a GenericDataManager/EdgeFactory/
+LabelFactory and assembling the right Data layout for the task type.
+
+Reads:
+  - Nothing directly — delegates all file I/O to the GenericDataManager
+    instance passed into __init__.
+
+Writes:
+  - Nothing directly — returns an in-memory torch_geometric.data.Data object;
+    callers (e.g. the N8-rebuild scripts under data/graphrag/) may cache it
+    to a .pt file themselves.
+
+Usage:
+  Not run directly. Instantiated as TAGConstructor(data_manager) and called
+  as tc.construct(variant, df, split) by experiment_runner.py and the
+  various one-off rebuild/figure scripts.
 """
 
 import torch
@@ -64,6 +80,10 @@ class TAGConstructor:
                 else:
                     base_graph.add_edge(edge[0], edge[1])
             extra_kwargs['base_graph'] = base_graph
+            # k_structural: configurable via {dataset}_dataset.yaml, defaults
+            # to 5 (see AUDIT_pre_publication.md FIX 3 -- k=50 default was
+            # found to degenerate under centrality-tie clustering).
+            extra_kwargs['k_structural'] = self.data_manager.config.get('k_structural', 5)
 
         # Build edges
         edges = EdgeFactory.build_edges(

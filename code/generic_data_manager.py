@@ -1,6 +1,25 @@
 """
-Generic Data Manager Implementation
-Single implementation that works across all datasets via YAML-driven configuration.
+The single BaseDataManager implementation used for every dataset (arxiv,
+amazon, history, electronics, toys). All dataset-specific behavior is driven
+by {dataset}_dataset.yaml config keys (has_secondary_id, secondary_id_is_list,
+has_structural_edges, m1_meta_url, m2_source, scalar_label_transform,
+m2_transform, minimum_hub_size, embedding_prefix, etc.) rather than branching
+on the dataset name — see code/AUDIT_yaml_hardcoding.md for the full audit.
+
+Reads:
+  - data/configs/{dataset}_dataset.yaml
+  - data/{dataset}/{split}/raw.jsonl, or
+    data/{dataset}/{split}/samples/sample_{idx:02d}.jsonl
+  - data/{dataset}/{split}/embeddings/{prefix}_embeddings[_contextual].npy
+  - data/{dataset}/{split}/embeddings/{prefix}_index.json (N8/N9 only)
+
+Writes:
+  - Nothing.
+
+Usage:
+  Not run directly. Instantiated as GenericDataManager(dataset,
+  base_path='data') by experiment_runner.py and every one-off script that
+  needs dataset access.
 """
 
 import json
@@ -68,19 +87,24 @@ class GenericDataManager(BaseDataManager):
             # Secondary entities (authors/users)
             if not self.config['has_secondary_id']:
                 raise ValueError(f"N8 unavailable for {self.dataset}")
-            
-            # Extract unique secondary IDs
-            unique_ids = set()
+
+            # Count N7 occurrences per secondary_id so minimum_hub_size can
+            # filter out non-aggregating "hub" nodes (pre-publication audit
+            # FIX 4: 87-98% of N8 nodes have exactly 1 associated N7 node at
+            # default settings -- functionally identical to N7, not a hub).
+            counts: dict = {}
             for sec_id in df['secondary_id']:
                 if sec_id is None:
                     continue
                 # Handle list (arxiv) vs single value (amazon)
-                if isinstance(sec_id, list):
-                    unique_ids.update(sec_id)
-                else:
-                    unique_ids.add(sec_id)
-            
-            return sorted(list(unique_ids))
+                ids = sec_id if isinstance(sec_id, list) else [sec_id]
+                for sid in ids:
+                    counts[sid] = counts.get(sid, 0) + 1
+
+            min_hub_size = self.config.get('minimum_hub_size', 1)
+            unique_ids = [nid for nid, c in counts.items() if c >= min_hub_size]
+
+            return sorted(unique_ids)
         
         elif node_type == 'N9':
             # Aggregate entities (categories/families)
@@ -154,11 +178,21 @@ class GenericDataManager(BaseDataManager):
             # Secondary entity embeddings
             if not self.config['has_secondary_id']:
                 raise ValueError(f"N8 unavailable for {self.dataset}")
-            
+
             prefix = self.config['secondary_embedding_prefix']
             emb_file = emb_path / f"{prefix}_embeddings.npy"
             index_file = emb_path / f"{prefix}_index.json"
-            
+
+            # T12e fix (pre-publication audit FIX 2): this branch previously
+            # ignored `fidelity` entirely and always returned the real
+            # embeddings, silently making T12e identical to T12b for every
+            # N8 variant in every dataset. Mirror the N7 branch's explicit
+            # zero-vector handling.
+            if fidelity == 'T12e':
+                ref = np.load(emb_file, mmap_mode='r')
+                n_rows = len(node_list) if node_list is not None else ref.shape[0]
+                return np.zeros((n_rows, ref.shape[1]), dtype=np.float32)
+
             cache_key = (node_type, fidelity, split)
             if cache_key not in self._emb_cache:
                 self._emb_cache[cache_key] = np.load(emb_file)
@@ -179,7 +213,14 @@ class GenericDataManager(BaseDataManager):
             prefix = self.config['aggregate_embedding_prefix']
             emb_file = emb_path / f"{prefix}_embeddings.npy"
             index_file = emb_path / f"{prefix}_index.json"
-            
+
+            # T12e fix (pre-publication audit FIX 2): same bug as N8 above --
+            # `fidelity` was never checked, so T12e silently equaled T12b.
+            if fidelity == 'T12e':
+                ref = np.load(emb_file, mmap_mode='r')
+                n_rows = len(node_list) if node_list is not None else ref.shape[0]
+                return np.zeros((n_rows, ref.shape[1]), dtype=np.float32)
+
             cache_key = (node_type, fidelity, split)
             if cache_key not in self._emb_cache:
                 self._emb_cache[cache_key] = np.load(emb_file)

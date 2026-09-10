@@ -1,8 +1,18 @@
 """
-GNN Models Module — TAG Research (code/ version)
-ModelFactory preserving the 2-layer GraphSAGE backbone from root models.py.
-Heads are task-specific; output_dimension is always resolved dynamically
-from data.y.shape[-1] at runtime (never hardcoded).
+Defines the 2-layer GraphSAGE model classes (node/edge/global-level) plus
+their MLP-baseline counterparts, and the ModelFactory / MLPModelFactory that
+instantiate the right one for a given task_type (M1-M6).
+
+Reads:
+  - Nothing — pure model/factory definitions, no file I/O.
+
+Writes:
+  - Nothing.
+
+Usage:
+  Not run directly. Imported by code/experiment_runner.py
+  (ModelFactory.create(...) / MLPModelFactory.create(...)) and by the
+  standalone epoch-figure scripts (run_epoch_figure_arxiv.py etc).
 """
 
 import torch

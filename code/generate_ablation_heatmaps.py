@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 """
-generate_ablation_heatmaps.py — Three-panel ablation heatmaps from run_final/.
+Renders a three-panel ablation heatmap (S_GNN_step1 | Final_Score |
+unclamped_score, variant x held-out test sample) for each of the 5 datasets.
 
-One figure per dataset, three side-by-side panels:
-  Left   — S_GNN_step1   (raw GNN accuracy/F1/R², sequential colourmap)
-  Centre — Final_Score   (clamped GNN lift × 100, sequential colourmap)
-  Right  — unclamped_score (signed GNN lift × 100, diverging colourmap)
+Reads:
+  - output/run_1000_final/construction_performance_table_{dataset}.csv
+    (for history, amazon, arxiv, electronics, toys)
 
-Layout:
-  Y-axis  : all variants sorted by mean unclamped_score descending (shared across panels)
-  X-axis  : held-out test samples 20–29 (first 10 of the 30 new samples)
-  Source  : output/run_final/ CSVs (all five datasets, canonical schema)
-
-Output:
-  output/analysis/ablation_heatmap_{dataset}.png
+Writes:
+  - output/run_1000_final/analysis/ablation_heatmap_{dataset}.png
 
 Usage:
     python3 code/generate_ablation_heatmaps.py

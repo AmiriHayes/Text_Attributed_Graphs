@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 """
-Decision tree analysis for TAG construction choices.
+Fits a decision tree per dataset (plus a combined tree) predicting variant
+mean score from the one-hot-encoded (Task, Node, Edge, Text) construction
+axes, and renders each as an annotated PNG. Also exposes a programmatic API
+(fit_tree / compare_trees / predict_and_validate) that run_analysis.py uses
+directly instead of this file's own CLI.
 
-Features are one-hot encoded so every split is an exact equality check
-("Is task M1? Yes / No") rather than a range over ordinal indices.
-Tree is fit on 20 TRAIN-split variant means and evaluated on 20 TEST-split means.
+Reads:
+  - output/construction_performance_table_{dataset}.csv
+    (dataset in {history, amazon, arxiv} for the CLI's --dataset flag —
+    see code/AUDIT_yaml_hardcoding.md finding #1: electronics/toys are not
+    valid --dataset choices in this file's CLI, unlike the programmatic API)
 
-Usage
------
+Writes:
+  - output/decision_trees/decision_tree_{scenario}.png
+
+Usage:
     python3 code/decision_tree_analysis.py --dataset history
     python3 code/decision_tree_analysis.py --dataset amazon
     python3 code/decision_tree_analysis.py --dataset arxiv
